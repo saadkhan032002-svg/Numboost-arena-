@@ -18,9 +18,11 @@ import {
   Target,
   Heart,
   Share2,
-  Info
+  Info,
+  Download
 } from 'lucide-react';
 import { generateQuestion, Difficulty, Question, shuffleArray } from './lib/mathEngine';
+import { jsPDF } from 'jspdf';
 
 type Screen = 'home' | 'categories' | 'difficulty' | 'game' | 'results' | 'custom' | 'about';
 
@@ -55,6 +57,7 @@ export default function App() {
   const [lastResult, setLastResult] = useState<{ isCorrect: boolean; show: boolean }>({ isCorrect: false, show: false });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const [practiceCat, setPracticeCat] = useState<string>('');
   const [customConfig, setCustomConfig] = useState<Record<string, ActiveCategory>>({});
@@ -184,6 +187,119 @@ export default function App() {
     setCurrentQuestion(null);
   };
 
+  const downloadCustomPDF = () => {
+    if (Object.keys(customConfig).length === 0 || !customVolume) return;
+    setIsGeneratingPDF(true);
+
+    setTimeout(() => {
+      try {
+        const finalQuestions: Question[] = [];
+        const categories = Object.values(customConfig);
+        for (let i = 0; i < customVolume; i++) {
+          const activeCat = categories[Math.floor(Math.random() * categories.length)];
+          finalQuestions.push(generateQuestion(activeCat.name, activeCat.difficulty, activeCat.customRange));
+        }
+
+        const doc = new jsPDF({ format: 'a4' });
+
+        const addFooter = (document: jsPDF) => {
+          document.setFontSize(9);
+          document.setFont("helvetica", "italic");
+          document.text("This practice sheet created by Numboostarena.netlify.app", 105, 287, { align: "center" });
+        };
+        
+        // Page 1: Title
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text("NUMBOOST ARENA", 14, 20);
+        
+        doc.setFontSize(11);
+        doc.setFont("helvetica", "normal");
+        doc.text("Name: _______________________", 14, 30);
+        doc.text("Date: ________________", 110, 30);
+        doc.text(`Total Questions: ${customVolume}`, 160, 30);
+
+        doc.line(14, 34, 196, 34);
+
+        // Sanitize string for standard jsPDF encoding
+        const formatExp = (exp: string) => exp.replace(/×/g, 'x').replace(/÷/g, '/').replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'v');
+
+        // Layout Config
+        const hasLongQuestions = finalQuestions.some(q => q.expression.length > 12);
+        const cols = hasLongQuestions ? 3 : 4;
+        const colWidth = hasLongQuestions ? 60 : 46;
+        const startX = 14;
+        let startY = 46;
+        const lineH = 14;
+        const rowsPerPage = 16;
+
+        doc.setFontSize(11);
+
+        for (let i = 0; i < finalQuestions.length; i++) {
+           const col = i % cols;
+           const row = Math.floor(i / cols);
+           const localRow = row % rowsPerPage;
+
+           const x = startX + (col * colWidth);
+           const y = startY + (localRow * lineH);
+
+           if (i > 0 && i % (cols * rowsPerPage) === 0) {
+              addFooter(doc);
+              doc.addPage();
+              doc.setFont("helvetica", "bold");
+              startY = 20;
+           }
+
+           doc.setFont("helvetica", "bold");
+           doc.text(`${i + 1}.`, x, y);
+           doc.setFont("helvetica", "normal");
+           doc.text(`${formatExp(finalQuestions[i].expression)} = _______`, x + (i >= 9 ? 7 : 6), y);
+        }
+        addFooter(doc);
+
+        // Add Answer Key Page
+        doc.addPage();
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text("ANSWER KEY", 14, 20);
+        doc.line(14, 24, 196, 24);
+        
+        doc.setFontSize(11);
+        startY = 34;
+        const ansRowsPerPage = 26;
+        const ansLineH = 9;
+
+        for (let i = 0; i < finalQuestions.length; i++) {
+           const col = i % cols;
+           const row = Math.floor(i / cols);
+           const localRow = row % ansRowsPerPage;
+
+           const x = startX + (col * colWidth);
+           const y = startY + (localRow * ansLineH);
+
+           if (i > 0 && i % (cols * ansRowsPerPage) === 0) {
+              addFooter(doc);
+              doc.addPage();
+              doc.setFont("helvetica", "bold");
+              startY = 20;
+           }
+
+           doc.setFont("helvetica", "bold");
+           doc.text(`${i + 1}.`, x, y);
+           doc.setFont("helvetica", "normal");
+           doc.text(`${finalQuestions[i].answer}`, x + (i >= 9 ? 7 : 6), y);
+        }
+        addFooter(doc);
+
+        doc.save("NumBoost-Elite-Worksheet.pdf");
+      } catch (e) {
+        console.error("Failed to generate PDF", e);
+      } finally {
+        setIsGeneratingPDF(false);
+      }
+    }, 100);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Global Escape
@@ -249,7 +365,7 @@ export default function App() {
                 transition={{ delay: 0.3 }}
                 className="text-6xl md:text-8xl font-black tracking-tight leading-[0.9] mb-6 text-white"
               >
-                NUMBOOST<br />ARENA.
+                NUMBOOST<br />ARENA
               </motion.h1>
               <motion.p 
                 initial={{ opacity: 0 }}
@@ -386,26 +502,36 @@ export default function App() {
                   </div>
                 )}
                 
-                <button 
-                  disabled={Object.keys(customConfig).length === 0 || !customVolume}
-                  onClick={() => {
-                    const finalState = {
-                      categories: Object.values(customConfig),
-                      score: 0,
-                      questionsAnswered: 0,
-                      totalQuestions: customVolume,
-                      history: [],
-                      startTime: Date.now(),
-                      endTime: null
-                    };
-                    setGameState(finalState);
-                    nextQuestion(finalState as any);
-                    setScreen('game');
-                  }}
-                  className="w-full mt-auto bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
-                >
-                  Start Custom Arena
-                </button>
+                <div className="flex flex-col md:flex-row gap-3 mt-auto">
+                  <button 
+                    disabled={Object.keys(customConfig).length === 0 || !customVolume || isGeneratingPDF}
+                    onClick={downloadCustomPDF}
+                    className="flex-1 bg-white/5 border border-white/10 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    {isGeneratingPDF ? 'Generating...' : <><Download className="w-4 h-4" /> Export PDF</>}
+                  </button>
+
+                  <button 
+                    disabled={Object.keys(customConfig).length === 0 || !customVolume}
+                    onClick={() => {
+                      const finalState = {
+                        categories: Object.values(customConfig),
+                        score: 0,
+                        questionsAnswered: 0,
+                        totalQuestions: customVolume,
+                        history: [],
+                        startTime: Date.now(),
+                        endTime: null
+                      };
+                      setGameState(finalState);
+                      nextQuestion(finalState as any);
+                      setScreen('game');
+                    }}
+                    className="flex-[2] bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
+                  >
+                    Start Custom Arena
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
