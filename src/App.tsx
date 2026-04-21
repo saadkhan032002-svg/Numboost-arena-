@@ -211,7 +211,7 @@ export default function App() {
 
   return (
     <div className="min-h-[100dvh] bg-[#0A0F16] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
-      {/* Immersive Background Blur Elements */}
+      {/* Immersive Background Blur Elements - Global */}
       <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
 
