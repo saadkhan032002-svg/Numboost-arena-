@@ -173,10 +173,10 @@ export default function App() {
     }));
   };
 
-  const handleGlobalShare = (scoreData?: { accuracy: number, score: number, total: number }) => {
-    let text = "Master speed and accuracy with NumBoost Elite.\n\"Growth happens at the edge of failure.\"\nTry it now: https://numboostarena.netlify.app/#";
+  const handleGlobalShare = (scoreData?: { accuracy: number, score: number, total: number, speed?: string }) => {
+    let text = "Level up your calculation speeds with NumBoost Arena! 🤯 Create custom math challenges, practice specific ranges, and challenge your limits in an immersive test mode. Let's see if you can handle the Expert level!\"\n👉 Join the Arena: https://numboostarena.netlify.app/#";
     if (scoreData) {
-        text = `I just scored ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total}) in NumBoost Elite! 🚀\nCan you beat my score?\n\nPlay now: https://numboostarena.netlify.app/#`;
+        text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboostarena.netlify.app/#`;
     }
     if (navigator.share) {
         navigator.share({ text }).catch(console.error);
@@ -1185,15 +1185,28 @@ export default function App() {
                     ))}
                   </div>
 
-                  <button 
-                    onClick={resetGame}
-                    className="w-full mt-auto bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)] group relative cursor-pointer"
-                  >
-                    Restart Arena <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                    <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-white/50 tracking-widest uppercase">
-                      Press [Enter]
-                    </span>
-                  </button>
+                  <div className="flex gap-4 mt-auto">
+                    <button 
+                      onClick={resetGame}
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)] group relative cursor-pointer"
+                    >
+                      Restart <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-white/50 tracking-widest uppercase">
+                        Press [Enter]
+                      </span>
+                    </button>
+                    <button 
+                      onClick={() => handleGlobalShare({
+                        accuracy,
+                        score: correctCount,
+                        total: gameState.totalQuestions,
+                        speed: ((Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10) / gameState.totalQuestions).toFixed(1)
+                      })}
+                      className="w-14 md:w-16 flex items-center justify-center bg-white/10 text-emerald-400 rounded-full hover:bg-white/20 transition-all active:scale-95 border border-white/5 shadow-lg"
+                    >
+                      <Share2 className="w-5 h-5 md:w-6 md:h-6" />
+                    </button>
+                  </div>
                 </>
               );
             })()}
