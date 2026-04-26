@@ -21,23 +21,26 @@ import {
   Info,
   Download
 } from 'lucide-react';
-import { generateQuestion, Difficulty, Question, shuffleArray } from './lib/mathEngine';
+import { generateQuestion, Difficulty, Question, shuffleArray, generateSmartDecoys } from './lib/mathEngine';
 import { jsPDF } from 'jspdf';
 
-type Screen = 'home' | 'categories' | 'difficulty' | 'game' | 'results' | 'custom' | 'about';
+type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'results' | 'custom' | 'about';
 
 export interface ActiveCategory {
   name: string;
   difficulty?: Difficulty;
-  customRange?: { start: number; end: number };
+  customRange?: { start: number | ''; end: number | '' };
 }
 
 interface GameState {
   categories: ActiveCategory[];
+  isTestMode: boolean;
   score: number;
   questionsAnswered: number;
   totalQuestions: number;
-  history: { question: Question; userSelection: any; isCorrect: boolean }[];
+  questions: { question: Question; options: (string | number)[] }[];
+  answers: Record<number, string | 'skipped'>;
+  currentIndex: number;
   startTime: number;
   endTime: number | null;
 }
@@ -49,6 +52,27 @@ const diffEmojis: Record<Difficulty, string> = {
   Expert: '💀'
 };
 
+const PRACTICE_CATS = [
+  { id: 'Addition', label: 'Addition' },
+  { id: 'Subtraction', label: 'Subtraction' },
+  { id: 'Multiplication', label: 'Multiplication' },
+  { id: 'Division', label: 'Division' },
+  { id: 'Decimals', label: 'Decimals' },
+  { id: 'Fractions', label: 'Fractions' },
+  { id: 'Tables', label: 'Tables' },
+  { id: 'Squares', label: 'Squares' },
+  { id: 'Cubes', label: 'Cubes' },
+  { id: 'Roots', label: 'Roots' }
+];
+
+const SUB_OPS = [
+  { id: 'Addition', label: 'Addition (+)' },
+  { id: 'Subtraction', label: 'Subtraction (-)' },
+  { id: 'Multiplication', label: 'Multiplication (×)' },
+  { id: 'Division', label: 'Division (÷)' },
+  { id: 'Mix', label: 'Mix (All)' }
+];
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -59,22 +83,87 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  const [gameMode, setGameMode] = useState<'mcq' | 'manual'>('manual');
+  const [manualInput, setManualInput] = useState('');
+  const [showManualInfo, setShowManualInfo] = useState(false);
+  const [showQuestionGrid, setShowQuestionGrid] = useState(false);
+
   const [practiceCat, setPracticeCat] = useState<string>('');
+  const [practiceSetupStep, setPracticeSetupStep] = useState<1 | 2>(1);
+  const [showSubcategoriesFor, setShowSubcategoriesFor] = useState<string>('');
+  const [practiceConfig, setPracticeConfig] = useState<{
+    difficulty: Difficulty;
+    range: { start: number | ''; end: number | '' };
+    volume: number | '';
+  }>({ difficulty: 'Beginner', range: { start: '', end: '' }, volume: 10 });
   const [customConfig, setCustomConfig] = useState<Record<string, ActiveCategory>>({});
   const [customVolume, setCustomVolume] = useState<number>(20);
 
+  const InputToggle = () => (
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 relative">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+          <Target className="w-5 h-5" />
+        </div>
+        <div className="text-left">
+          <h3 className="font-bold">Input Mode</h3>
+          <p className="text-xs text-gray-400">Choose how to answer</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-full ring-1 ring-white/10 relative">
+        <button 
+          onClick={() => setGameMode('mcq')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${gameMode === 'mcq' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+        >
+          Options
+        </button>
+        <button 
+          onClick={() => setGameMode('manual')}
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${gameMode === 'manual' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+        >
+          Manual 
+          <div 
+            onClick={(e) => { e.stopPropagation(); setShowManualInfo(!showManualInfo); }}
+            className="p-1 -m-1 hover:bg-white/10 rounded-full transition-all"
+          >
+            <Info className="w-3 h-3 opacity-80" />
+          </div>
+        </button>
+        {showManualInfo && (
+          <div className="absolute top-full mt-2 right-0 w-48 bg-gray-800 text-xs text-white p-3 rounded-xl border border-white/10 shadow-2xl z-50">
+            Type the exact answer manually. Perfect for rigorous mental math training without relying on hints!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const toggleCustomCategory = (cat: string) => {
+    // For custom arena, encode Decimals/Fractions as Mix by default, or let user select sub.
+    // For simplicity, we just save it as `${cat}-Mix` if it's Fractions/Decimals to leverage the engine.
+    const key = (cat === 'Decimals' || cat === 'Fractions') ? `${cat}-Mix` : cat;
+    
     const newConf = { ...customConfig };
-    if (newConf[cat]) {
-      delete newConf[cat];
+    if (newConf[key]) {
+      delete newConf[key];
     } else {
       const isRange = ['Tables', 'Squares', 'Cubes', 'Roots'].includes(cat);
-      newConf[cat] = {
-        name: cat,
+      newConf[key] = {
+        name: key,
         ...(isRange ? { customRange: { start: 1, end: 12 } } : { difficulty: 'Intermediate' as Difficulty })
       };
     }
     setCustomConfig(newConf);
+  };
+
+  const getCatLabel = (cat: string) => {
+    if (cat.includes('-')) {
+      const [main, sub] = cat.split('-');
+      const opLabel = SUB_OPS.find(o => o.id === sub)?.label || sub;
+      return `${main} ${opLabel}`;
+    }
+    return PRACTICE_CATS.find(p => p.id === cat)?.label || cat;
   };
 
   const updateCustomCategory = (name: string, updates: Partial<ActiveCategory>) => {
@@ -103,82 +192,135 @@ export default function App() {
   };
 
   const startPractice = (category: string) => {
-    setPracticeCat(category);
-    setScreen('difficulty');
+    if (category === 'Decimals' || category === 'Fractions') {
+      setShowSubcategoriesFor(category);
+      setScreen('subcategories');
+    } else {
+      setPracticeCat(category);
+      setPracticeSetupStep(1);
+      setScreen('setup');
+    }
   };
 
-  const selectDifficulty = (difficulty: Difficulty) => {
-    const startState: GameState = {
-      categories: [{ name: practiceCat, difficulty }],
-      score: 0,
-      questionsAnswered: 0,
-      totalQuestions: 10,
-      history: [],
-      startTime: Date.now(),
-      endTime: null
+  const startSubcategory = (subOp: string) => {
+    setPracticeCat(`${showSubcategoriesFor}-${subOp}`);
+    setPracticeSetupStep(1);
+    setScreen('setup');
+  };
+
+  const initGameState = (categories: ActiveCategory[], totalQuestions: number, isTestMode: boolean) => {
+    const questions: { question: Question; options: (string | number)[] }[] = [];
+    for (let i = 0; i < totalQuestions; i++) {
+        const cat = categories[Math.floor(Math.random() * categories.length)];
+        let q: Question;
+        let attempts = 0;
+        do {
+            q = generateQuestion(cat.name, cat.difficulty, cat.customRange);
+            attempts++;
+        } while (attempts < 15 && questions.some(existing => existing.question.expression === q.expression));
+        
+        const decoys = generateSmartDecoys(q);
+        const options = shuffleArray([q.answer, ...decoys]);
+        questions.push({ question: q, options });
+    }
+
+    const state: GameState = {
+        categories,
+        isTestMode,
+        score: 0,
+        questionsAnswered: 0,
+        totalQuestions,
+        questions,
+        answers: {},
+        currentIndex: 0,
+        startTime: Date.now(),
+        endTime: null
     };
-    setGameState(startState);
-    nextQuestion(startState);
+    setGameState(state);
+    setCurrentQuestion(state.questions[0].question);
+    setOptions(state.questions[0].options as any);
+    setManualInput('');
     setScreen('game');
   };
 
-  const nextQuestion = (state: GameState) => {
-    const activeCat = state.categories[Math.floor(Math.random() * state.categories.length)];
-    const q = generateQuestion(activeCat.name, activeCat.difficulty, activeCat.customRange);
-    setCurrentQuestion(q);
-    
-    // Generate decoy options
-    const decoys = new Set<number | string>();
-    while (decoys.size < 3) {
-      const offset = Math.floor(Math.random() * 10) - 5;
-      if (offset === 0) continue;
-      
-      let decoy;
-      if (typeof q.answer === 'number') {
-        decoy = q.answer + offset;
-      } else {
-        decoy = q.answer + String(offset);
-      }
-      
-      if (decoy !== q.answer) decoys.add(decoy);
-    }
-    
-    setOptions(shuffleArray([q.answer, ...Array.from(decoys)]));
+  const goToQuestion = (index: number, stateObj = gameState) => {
+    if (!stateObj) return;
+    setCurrentQuestion(stateObj.questions[index].question);
+    setOptions(stateObj.questions[index].options as any);
+    setManualInput(stateObj.answers[index] !== 'skipped' ? (stateObj.answers[index] || '') : '');
+    setGameState({ ...stateObj, currentIndex: index });
   };
 
-  const handleAnswer = (answer: number | string) => {
-    if (!gameState || !currentQuestion || isProcessing) return;
-    setIsProcessing(true);
+  const handleAnswer = (answer: string | number) => {
+    if (!gameState || isProcessing) return;
+    
+    if (gameState.isTestMode) {
+      // Test Mode logic: No immediate feedback, proceed to next
+      const nextState: GameState = {
+        ...gameState,
+        answers: { ...gameState.answers, [gameState.currentIndex]: String(answer).trim() }
+      };
+      // Mark as answered if it wasn't already or wasn't skipped? Actually just update the dictionary.
+      const answeredKeys = Object.values(nextState.answers).filter(val => val !== undefined && val !== '').length;
+      nextState.questionsAnswered = answeredKeys;
+      
+      setGameState(nextState);
+      
+      if (gameState.currentIndex + 1 < gameState.totalQuestions) {
+        goToQuestion(gameState.currentIndex + 1, nextState);
+      }
+    } else {
+      // Practice Mode logic: Evaluate immediately
+      setIsProcessing(true);
+      const isCorrect = String(answer).trim() === String(currentQuestion?.answer).trim();
+      setLastResult({ isCorrect, show: true });
 
-    const isCorrect = answer === currentQuestion.answer;
-    setLastResult({ isCorrect, show: true });
+      const nextState: GameState = {
+        ...gameState,
+        answers: { ...gameState.answers, [gameState.currentIndex]: String(answer).trim() },
+        score: isCorrect ? gameState.score + 1 : gameState.score,
+        questionsAnswered: gameState.questionsAnswered + 1
+      };
 
-    const newHistory = [...gameState.history, { 
-      question: currentQuestion, 
-      userSelection: answer, 
-      isCorrect 
-    }];
+      setGameState(nextState);
+
+      setTimeout(() => {
+        setLastResult({ ...lastResult, show: false });
+        if (nextState.currentIndex + 1 >= nextState.totalQuestions) {
+          setGameState({ ...nextState, endTime: Date.now() });
+          setScreen('results');
+          setIsProcessing(false);
+        } else {
+          goToQuestion(nextState.currentIndex + 1, nextState);
+          setIsProcessing(false);
+        }
+      }, 600);
+    }
+  };
+
+  const skipQuestion = () => {
+    if (!gameState || isProcessing) return;
+    
+    // Both Test & Practice can skip technically? The user said "practice mai previous aur skip ka option nhi daalna"
+    if (!gameState.isTestMode) return;
 
     const nextState: GameState = {
       ...gameState,
-      score: isCorrect ? gameState.score + 1 : gameState.score,
-      questionsAnswered: gameState.questionsAnswered + 1,
-      history: newHistory
+      answers: { ...gameState.answers, [gameState.currentIndex]: 'skipped' }
     };
-
+    const answeredKeys = Object.values(nextState.answers).filter(val => val !== undefined && val !== '').length;
+    nextState.questionsAnswered = answeredKeys;
+    
     setGameState(nextState);
+    if (gameState.currentIndex + 1 < gameState.totalQuestions) {
+      goToQuestion(gameState.currentIndex + 1, nextState);
+    }
+  };
 
-    setTimeout(() => {
-      setLastResult({ ...lastResult, show: false });
-      if (nextState.questionsAnswered >= nextState.totalQuestions) {
-        setGameState({ ...nextState, endTime: Date.now() });
-        setScreen('results');
-        setIsProcessing(false);
-      } else {
-        nextQuestion(nextState);
-        setIsProcessing(false);
-      }
-    }, 600);
+  const submitTest = () => {
+    if (!gameState) return;
+    setGameState({ ...gameState, endTime: Date.now() });
+    setScreen('results');
   };
 
   const resetGame = () => {
@@ -194,7 +336,7 @@ export default function App() {
     setTimeout(() => {
       try {
         const finalQuestions: Question[] = [];
-        const categories = Object.values(customConfig);
+        const categories = Object.values(customConfig) as ActiveCategory[];
         for (let i = 0; i < customVolume; i++) {
           const activeCat = categories[Math.floor(Math.random() * categories.length)];
           finalQuestions.push(generateQuestion(activeCat.name, activeCat.difficulty, activeCat.customRange));
@@ -230,8 +372,8 @@ export default function App() {
         const colWidth = hasLongQuestions ? 60 : 46;
         const startX = 14;
         let startY = 46;
-        const lineH = 14;
-        const rowsPerPage = 16;
+        const lineH = gameMode === 'mcq' ? 24 : 14;
+        const rowsPerPage = gameMode === 'mcq' ? 10 : 16;
 
         doc.setFontSize(11);
 
@@ -254,6 +396,16 @@ export default function App() {
            doc.text(`${i + 1}.`, x, y);
            doc.setFont("helvetica", "normal");
            doc.text(`${formatExp(finalQuestions[i].expression)} = _______`, x + (i >= 9 ? 7 : 6), y);
+
+           // Add options if gameMode is MCQ
+           if (gameMode === 'mcq') {
+              const decoys = generateSmartDecoys(finalQuestions[i]);
+              const combinedOpts = shuffleArray([finalQuestions[i].answer, ...decoys]);
+              doc.setFontSize(8);
+              doc.text(`a) ${combinedOpts[0]}   b) ${combinedOpts[1]}`, x + (i >= 9 ? 7 : 6), y + 6);
+              doc.text(`c) ${combinedOpts[2]}   d) ${combinedOpts[3]}`, x + (i >= 9 ? 7 : 6), y + 11);
+              doc.setFontSize(11); // revert for next text
+           }
         }
         addFooter(doc);
 
@@ -302,8 +454,22 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore key events if inside an input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        if (screen === 'game' && gameMode === 'manual' && e.key === 'Enter') {
+          // Allow enter key for manual mode to submit answer
+          e.preventDefault(); // Prevent default form submit behaviors if any
+        } else {
+           return;
+        }
+      }
+
       // Global Escape
       if (e.key === 'Escape') {
+        if (showSubcategoriesFor && screen === 'categories') {
+          setShowSubcategoriesFor('');
+          return;
+        }
         if (['categories', 'custom', 'about'].includes(screen)) setScreen('home');
         if (screen === 'difficulty') setScreen('categories');
       }
@@ -314,19 +480,21 @@ export default function App() {
       }
 
       // Game screen Actions
-      if (screen === 'game' && !isProcessing && options.length > 0) {
-        if (e.key === '1' || e.key === 'Numpad1') handleAnswer(options[0]);
-        if (e.key === '2' || e.key === 'Numpad2') handleAnswer(options[1]);
-        if (e.key === '3' || e.key === 'Numpad3') handleAnswer(options[2]);
-        if (e.key === '4' || e.key === 'Numpad4') handleAnswer(options[3]);
+      if (screen === 'game' && !isProcessing && currentQuestion) {
+        if (gameMode === 'mcq' && options.length > 0) {
+          if (e.key === '1' || e.key === 'Numpad1') handleAnswer(options[0]);
+          if (e.key === '2' || e.key === 'Numpad2') handleAnswer(options[1]);
+          if (e.key === '3' || e.key === 'Numpad3') handleAnswer(options[2]);
+          if (e.key === '4' || e.key === 'Numpad4') handleAnswer(options[3]);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [screen, isProcessing, options]);
+  }, [screen, isProcessing, options, gameMode, showSubcategoriesFor, manualInput, currentQuestion]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#0A0F16] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-[#0F1626] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
       {/* Immersive Background Blur Elements - Global */}
       <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
@@ -408,21 +576,22 @@ export default function App() {
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Custom<br />Challenge.</h2>
+            <InputToggle />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
               <section className="space-y-8">
                 <div>
                   <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2">1. Select Pillars</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {['Addition', 'Subtraction', 'Multiplication', 'Division', 'Decimals', 'Fractions', 'Tables', 'Squares', 'Cubes', 'Roots'].map((pillar) => (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {PRACTICE_CATS.map((pillar) => (
                       <button 
-                        key={pillar}
-                        onClick={() => toggleCustomCategory(pillar)}
-                        className={`p-3 rounded-xl border text-xs md:text-sm font-bold transition-all ${
-                          customConfig[pillar] ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white border-blue-500/50 shadow-lg' : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:bg-white/10'
+                        key={pillar.id}
+                        onClick={() => toggleCustomCategory(pillar.id)}
+                        className={`p-3 rounded-xl border text-[11px] md:text-xs font-bold transition-all ${
+                          customConfig[pillar.id] ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white border-blue-500/50 shadow-lg' : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:bg-white/10'
                         }`}
                       >
-                        {pillar} {customConfig[pillar] && '✓'}
+                        {pillar.label} {customConfig[pillar.id] && '✓'}
                       </button>
                     ))}
                   </div>
@@ -456,23 +625,29 @@ export default function App() {
                         const isRange = ['Tables', 'Squares', 'Cubes', 'Roots'].includes(config.name);
                         return (
                           <div key={config.name} className="p-4 bg-[#111827] border border-white/10 rounded-xl">
-                            <div className="font-bold text-white mb-3 text-sm">{config.name}</div>
+                            <div className="font-bold text-white mb-3 text-sm">{getCatLabel(config.name)}</div>
                             {isRange ? (
                               <div className="flex gap-4">
                                 <div className="flex-1">
                                   <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">Start</label>
                                   <input type="number" 
                                     className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
-                                    value={config.customRange?.start || ''}
-                                    onChange={e => updateCustomCategory(config.name, { customRange: { ...config.customRange!, start: parseInt(e.target.value) || 0 } })} 
+                                    value={config.customRange?.start === '' ? '' : (config.customRange?.start ?? '')}
+                                    onChange={e => {
+                                      const val = parseInt(e.target.value);
+                                      updateCustomCategory(config.name, { customRange: { ...config.customRange!, start: isNaN(val) ? '' : val } });
+                                    }}
                                   />
                                 </div>
                                 <div className="flex-1">
                                   <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">End</label>
                                   <input type="number" 
                                     className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
-                                    value={config.customRange?.end || ''}
-                                    onChange={e => updateCustomCategory(config.name, { customRange: { ...config.customRange!, end: parseInt(e.target.value) || 0 } })} 
+                                    value={config.customRange?.end === '' ? '' : (config.customRange?.end ?? '')}
+                                    onChange={e => {
+                                      const val = parseInt(e.target.value);
+                                      updateCustomCategory(config.name, { customRange: { ...config.customRange!, end: isNaN(val) ? '' : val } });
+                                    }}
                                   />
                                 </div>
                               </div>
@@ -514,18 +689,7 @@ export default function App() {
                   <button 
                     disabled={Object.keys(customConfig).length === 0 || !customVolume}
                     onClick={() => {
-                      const finalState = {
-                        categories: Object.values(customConfig),
-                        score: 0,
-                        questionsAnswered: 0,
-                        totalQuestions: customVolume,
-                        history: [],
-                        startTime: Date.now(),
-                        endTime: null
-                      };
-                      setGameState(finalState);
-                      nextQuestion(finalState as any);
-                      setScreen('game');
+                      initGameState(Object.values(customConfig), customVolume, true);
                     }}
                     className="flex-[2] bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
                   >
@@ -543,40 +707,183 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="w-full max-w-2xl mx-auto px-6 py-12"
+            className="w-full max-w-4xl mx-auto px-6 py-12"
           >
             <button onClick={() => setScreen('home')} className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Choose Category</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {['Addition', 'Subtraction', 'Multiplication', 'Division', 'Decimals', 'Fractions', 'Squares', 'Cubes', 'Roots'].map((cat) => (
-                <CategoryBtn key={cat} name={cat} onClick={() => startPractice(cat)} />
+            <InputToggle />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {PRACTICE_CATS.map((cat) => (
+                <CategoryBtn key={cat.id} name={cat.label} onClick={() => startPractice(cat.id)} />
               ))}
             </div>
           </motion.div>
         )}
 
-        {screen === 'difficulty' && (
+        {screen === 'subcategories' && (
           <motion.div 
-            key="difficulty"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="max-w-md mx-auto px-6 pt-12 flex flex-col justify-center min-h-screen relative"
+            key="subcategories"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="w-full max-w-xl mx-auto px-6 py-12"
           >
-            <div className="absolute top-12 left-6">
-              <button onClick={() => setScreen('categories')} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
-                <ArrowLeft className="w-6 h-6" />
-              </button>
-            </div>
-            <h2 className="text-4xl font-black tracking-tight mb-2 text-center uppercase text-white">Intensity</h2>
-            <p className="text-blue-400 text-center text-xs tracking-widest font-bold uppercase mb-12">Select your challenge level</p>
-            <div className="space-y-3">
-              {(['Beginner', 'Intermediate', 'Advanced', 'Expert'] as Difficulty[]).map((diff) => (
-                <DifficultyCard key={diff} level={diff} onClick={() => selectDifficulty(diff)} />
+            <button onClick={() => setScreen('categories')} className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">Select Operation</h2>
+            <p className="text-blue-400 text-xs tracking-widest font-bold uppercase mb-8">
+              For {showSubcategoriesFor}
+            </p>
+            <InputToggle />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {SUB_OPS.map((op) => (
+                <CategoryBtn key={op.id} name={op.label} onClick={() => startSubcategory(op.id)} />
               ))}
             </div>
+          </motion.div>
+        )}
+
+        {screen === 'setup' && (
+          <motion.div 
+            key="setup"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="w-full max-w-xl mx-auto px-4 py-8 md:py-12"
+          >
+            <button onClick={() => {
+              if (practiceSetupStep === 2) setPracticeSetupStep(1);
+              else setScreen(practiceCat.includes('-') ? 'subcategories' : 'categories');
+            }} className="mb-6 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-white">
+              {practiceSetupStep === 1 ? 'Select Level' : 'Set Volume'}
+            </h2>
+            <p className="text-gray-400 border border-white/10 w-fit mx-auto px-3 py-1 rounded-full text-center text-[10px] md:text-xs tracking-widest font-bold uppercase mb-8">
+               {getCatLabel(practiceCat)}
+            </p>
+            
+            {practiceSetupStep === 1 && (
+              <>
+                {['Tables', 'Squares', 'Cubes', 'Roots'].includes(practiceCat) ? (
+                  <div className="mb-6 space-y-4 bg-[#111827]/80 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-2xl">
+                    <div className="flex flex-col items-center justify-center gap-2 mb-4">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300">Number Range</h3>
+                      <button 
+                        onClick={() => setShowManualInfo(!showManualInfo)}
+                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-300 transition-colors"
+                      >
+                        <div className="w-4 h-4 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">i</div>
+                        <span>Info</span>
+                      </button>
+                      
+                      {showManualInfo && (
+                        <div className="w-full p-3 bg-gray-800/50 border border-white/5 text-[11px] text-gray-400 rounded-lg text-center leading-relaxed mt-2">
+                          Define the start and end values for the numbers. Questions will be generated exclusively within this specified range.
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
+                        <input 
+                          type="number" 
+                          value={practiceConfig.range.start === '' ? '' : (practiceConfig.range.start ?? '')}
+                          onChange={e => {
+                            const val = parseInt(e.target.value);
+                            setPracticeConfig({...practiceConfig, range: {...practiceConfig.range, start: isNaN(val) ? '' : val}});
+                          }}
+                          className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-white focus:border-gray-500 outline-none text-center font-bold"
+                          placeholder="Ex: 1"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
+                        <input 
+                          type="number" 
+                          value={practiceConfig.range.end === '' ? '' : (practiceConfig.range.end ?? '')}
+                          onChange={e => {
+                            const val = parseInt(e.target.value);
+                            setPracticeConfig({...practiceConfig, range: {...practiceConfig.range, end: isNaN(val) ? '' : val}});
+                          }}
+                          className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-white focus:border-gray-500 outline-none text-center font-bold"
+                          placeholder="Ex: 10"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button 
+                      onClick={() => setPracticeSetupStep(2)}
+                      disabled={practiceConfig.range.start === '' || practiceConfig.range.end === ''}
+                      className="w-full mt-4 bg-white/10 hover:bg-white/20 text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mb-6 space-y-2">
+                    {(['Beginner', 'Intermediate', 'Advanced', 'Expert'] as Difficulty[]).map((diff) => (
+                      <DifficultyCard 
+                        key={diff} 
+                        level={diff} 
+                        onClick={() => {
+                          setPracticeConfig({...practiceConfig, difficulty: diff});
+                          setPracticeSetupStep(2);
+                        }}
+                        selected={practiceConfig.difficulty === diff}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {practiceSetupStep === 2 && (
+              <div className="mb-6">
+                <div className="bg-[#111827]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-2xl">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300 mb-4 text-center">Total Questions</h3>
+                  <div className="bg-black/40 border border-white/5 rounded-xl p-2 flex items-center">
+                    <input 
+                      type="number" 
+                      min="1" max="100"
+                      value={practiceConfig.volume === '' ? '' : (practiceConfig.volume ?? '')}
+                      onChange={(e) => {
+                        if (e.target.value === '') {
+                          setPracticeConfig({...practiceConfig, volume: ''});
+                          return;
+                        }
+                        let val = parseInt(e.target.value) || 0;
+                        if (val > 100) val = 100;
+                        setPracticeConfig({...practiceConfig, volume: val});
+                      }}
+                      className="w-full bg-transparent text-2xl font-black text-white outline-none text-center p-3"
+                      placeholder="Enter volume (Max 100)"
+                    />
+                  </div>
+                  
+                  <button 
+                    disabled={!practiceConfig.volume}
+                    onClick={() => {
+                      const finalCategories = [{
+                        name: practiceCat,
+                        ...( ['Tables', 'Squares', 'Cubes', 'Roots'].includes(practiceCat) 
+                           ? { customRange: practiceConfig.range } 
+                           : { difficulty: practiceConfig.difficulty } )
+                      }];
+                      initGameState(finalCategories, practiceConfig.volume || 10, false);
+                    }}
+                    className="w-full mt-6 bg-gradient-to-r from-gray-700 to-gray-600 text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-95 disabled:opacity-30 border border-white/10"
+                  >
+                    Start Practice
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -587,52 +894,214 @@ export default function App() {
             animate={{ opacity: 1 }}
             className="w-full max-w-4xl mx-auto px-6 pt-12 flex flex-col min-h-screen bg-transparent relative z-10"
           >
-            <header className="flex justify-between items-center mb-16">
+            <header className="flex justify-between items-center mb-10 w-full z-20">
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Difficulty Level</span>
                 <span className="text-lg md:text-xl font-bold text-white">
-                  {currentQuestion.category} {gameState.categories.find(c => c.name === currentQuestion.category)?.difficulty ? diffEmojis[gameState.categories.find(c => c.name === currentQuestion.category)!.difficulty!] : `[${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.start || ''}-${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.end || ''}]`}
+                  {getCatLabel(currentQuestion.category)} {gameState.categories.find(c => c.name === currentQuestion.category)?.difficulty ? diffEmojis[gameState.categories.find(c => c.name === currentQuestion.category)!.difficulty!] : `[${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.start || ''}-${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.end || ''}]`}
                 </span>
               </div>
-              <div className="flex bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-white/5 shadow-inner">
-                <span className="text-sm md:text-base font-bold tracking-widest uppercase text-emerald-400">
-                  Q {gameState.questionsAnswered + 1}
-                  <span className="text-gray-400 opacity-60">/{gameState.totalQuestions}</span>
-                </span>
-              </div>
+              <button 
+                onClick={() => setShowQuestionGrid(true)}
+                className="flex bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)] text-emerald-400 hover:bg-white/20 transition-all active:scale-95 cursor-pointer"
+              >
+                <div className="flex flex-col items-end">
+                    <span className="text-xs md:text-sm font-bold tracking-widest uppercase">
+                      Q {gameState.currentIndex + 1} <span className="text-emerald-400/50">/{gameState.totalQuestions}</span>
+                    </span>
+                    <span className="text-[8px] tracking-widest uppercase text-white/50">Tap to view</span>
+                </div>
+              </button>
             </header>
 
-            <main className="flex-1 flex flex-col items-center justify-center -mt-20">
+            <main className="flex-1 flex flex-col items-center justify-center -mt-10 relative z-10 w-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={currentQuestion.id}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 1.2, opacity: 0 }}
-                  className="text-[100px] md:text-[150px] font-black tracking-tighter mb-24 md:mb-32 tabular-nums drop-shadow-2xl"
+                  className="text-[60px] sm:text-[80px] md:text-[100px] lg:text-[120px] font-black tracking-tighter mb-8 tabular-nums drop-shadow-2xl text-center leading-tight break-words max-w-full"
                 >
                   {currentQuestion.expression}
                 </motion.div>
               </AnimatePresence>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full">
-                {options.map((opt, i) => (
-                  <motion.button
-                    disabled={isProcessing}
-                    key={i}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleAnswer(opt)}
-                    className="relative group h-24 md:h-32 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-center text-3xl md:text-4xl font-bold hover:bg-blue-500/20 hover:border-blue-500/50 transition-all active:bg-blue-600 active:text-white backdrop-blur-md disabled:opacity-50 overflow-hidden"
-                  >
-                    {opt}
-                    {/* PC Hotkey Indicator */}
-                    <span className="hidden md:flex absolute top-3 left-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-blue-300">
-                      [{i + 1}]
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
+              {gameMode === 'mcq' ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full max-w-3xl pb-8">
+                  {options.map((opt, i) => (
+                    <motion.button
+                      disabled={isProcessing}
+                      key={i}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleAnswer(opt)}
+                      className={`relative group h-20 md:h-28 border rounded-3xl flex items-center justify-center text-3xl md:text-4xl font-bold transition-all active:scale-95 disabled:opacity-50 overflow-hidden ${
+                         gameState.isTestMode && gameState.answers[gameState.currentIndex] === String(opt) ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]' : 'bg-[#0A0F1A] text-white border-white/5 hover:bg-blue-500/20 hover:border-blue-500/50 active:bg-blue-600 shadow-inner'
+                      }`}
+                    >
+                      {opt}
+                      <span className="hidden md:flex absolute top-3 left-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-blue-300">
+                        [{i + 1}]
+                      </span>
+                    </motion.button>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full max-w-md md:max-w-lg mx-auto flex flex-col gap-4 pb-8">
+                  <div className="bg-white/5 border border-white/20 focus-within:border-emerald-500 rounded-3xl p-1 transition-all group flex items-center">
+                    <input 
+                      type="text" 
+                      inputMode="none"
+                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-white placeholder:text-white/10"
+                      placeholder="?"
+                      value={manualInput}
+                      onChange={(e) => setManualInput(e.target.value)}
+                      onKeyDown={(e) => {
+                         if (e.key === 'Enter' && manualInput.trim()) handleAnswer(manualInput.trim())
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  
+                  {/* Custom Numpad */}
+                  <div className="grid lg:hidden grid-cols-4 gap-2 md:gap-4 mt-2 px-2 md:px-0">
+                    {['1', '2', '3', '/', '4', '5', '6', '-', '7', '8', '9', '.', 'DEL', '0', 'GO'].map((key) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          if (key === 'DEL') setManualInput(prev => prev.slice(0, -1));
+                          else if (key === 'GO') { if (manualInput.trim()) handleAnswer(manualInput.trim()); }
+                          else setManualInput(prev => prev + key);
+                        }}
+                        className={`h-16 font-bold text-xl md:text-3xl rounded-2xl active:scale-95 transition-all
+                          ${key === 'GO' ? 'bg-emerald-600 text-white col-span-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 
+                            key === 'DEL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
+                            ['/', '-', '.'].includes(key) ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                            'bg-[#0A0F1A] border border-white/5 text-white shadow-inner hover:bg-white/5'}
+                        `}
+                      >
+                        {key}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Bar for Test Mode */}
+              {gameState.isTestMode && (
+                <div className="flex w-full max-w-3xl justify-between items-center gap-3 mt-4 px-2 h-14">
+                   <motion.button 
+                     layout
+                     onClick={() => {if (gameState.currentIndex > 0) goToQuestion(gameState.currentIndex - 1);}}
+                     disabled={gameState.currentIndex === 0}
+                     className="py-4 rounded-xl bg-[#0A0F1A] hover:bg-white/5 border border-white/5 text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
+                   >
+                     <motion.span layout="position">
+                        {gameState.currentIndex === gameState.totalQuestions - 1 ? '<' : 'PRE'}
+                     </motion.span>
+                   </motion.button>
+                   
+                   <AnimatePresence>
+                   {gameState.currentIndex === gameState.totalQuestions - 1 && Object.values(gameState.answers).length > 0 ? (
+                      <motion.button 
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        layout
+                        onClick={submitTest}
+                        className="h-full px-8 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
+                      >
+                        Submit Test
+                      </motion.button>
+                   ) : (
+                      <motion.div layout className="flex-1" />
+                   )}
+                   </AnimatePresence>
+                   
+                   <motion.button 
+                     layout
+                     onClick={() => {
+                        skipQuestion();
+                        if (gameState.currentIndex === gameState.totalQuestions - 1) submitTest();
+                     }}
+                     className="py-4 rounded-xl bg-[#0A0F1A] hover:bg-white/5 border border-white/5 text-pink-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
+                   >
+                     <motion.span layout="position">
+                        {gameState.currentIndex === gameState.totalQuestions - 1 ? '>' : 'SKIP'}
+                     </motion.span>
+                   </motion.button>
+                </div>
+              )}
             </main>
+
+            {/* Question Navigator Overlay */}
+            <AnimatePresence>
+              {showQuestionGrid && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm p-6 md:p-12 overflow-y-auto"
+                >
+                  <button 
+                    onClick={() => setShowQuestionGrid(false)} 
+                    className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white transition-all shadow-xl"
+                  >
+                    ✕
+                  </button>
+                  <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest text-center mt-12 mb-4">Question Grid</h2>
+                  <p className="text-center text-gray-500 text-xs tracking-widest uppercase mb-12">
+                     {gameState.isTestMode ? "Tap a number to jump to question" : "Live attempt status"}
+                  </p>
+                  
+                  <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 max-w-4xl mx-auto w-full mb-12">
+                    {Array.from({ length: gameState.totalQuestions }).map((_, i) => {
+                      const status = gameState.answers[i];
+                      let stateColorClass = 'bg-[#111827] text-gray-400 border-white/5'; // unattempted
+                      
+                      if (gameState.isTestMode) {
+                        if (status === 'skipped') stateColorClass = 'bg-pink-500/20 text-pink-400 border-pink-500/30';
+                        else if (status !== undefined) stateColorClass = 'bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]'; // Answered
+                      } else {
+                        // Practice mode
+                        if (status !== undefined && status !== 'skipped') {
+                           const q = gameState.questions[i].question;
+                           const isCorrect = String(status).trim() === String(q.answer).trim();
+                           stateColorClass = isCorrect ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-500 border-red-500/30';
+                        }
+                      }
+  
+                      return (
+                        <button 
+                          key={i}
+                          onClick={() => {
+                            if (gameState.isTestMode) {
+                              goToQuestion(i);
+                              setShowQuestionGrid(false);
+                            }
+                          }}
+                          disabled={!gameState.isTestMode}
+                          className={`aspect-square flex items-center justify-center rounded-xl border-2 text-sm md:text-base font-bold transition-all ${gameState.currentIndex === i ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-110 z-10 shadow-2xl' : ''} ${stateColorClass} ${gameState.isTestMode ? 'hover:scale-105 active:scale-95' : 'cursor-default'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex flex-wrap justify-center gap-6 text-xs font-bold uppercase tracking-widest text-gray-500 mt-auto">
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#111827] border border-white/10" /> Unattempted</div>
+                    {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-blue-600 border border-blue-400" /> Answered</div>}
+                    {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-pink-500/20 border border-pink-500/30" /> Skipped</div>}
+                    {!gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500/30" /> Correct</div>}
+                    {!gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-red-500/20 border border-red-500/30" /> Wrong</div>}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {lastResult.show && (
               <motion.div
@@ -661,57 +1130,73 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-4xl mx-auto px-6 py-12 min-h-screen flex flex-col"
           >
-            <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-2 text-center drop-shadow-lg">ELITE<br />RESULTS.</h2>
-            <p className="text-blue-400 text-center text-sm tracking-[0.3em] font-bold uppercase mb-16">
-              "{
-                Math.round((gameState.score / gameState.totalQuestions) * 100) === 100 ? "Flawless precision. Pure mastery." :
-                Math.round((gameState.score / gameState.totalQuestions) * 100) >= 90 ? "Almost perfect. Sharp focus." :
-                Math.round((gameState.score / gameState.totalQuestions) * 100) >= 75 ? "Great run. Refine for perfection." :
-                Math.round((gameState.score / gameState.totalQuestions) * 100) >= 50 ? "Good ground covered. Keep scaling." :
-                "Growth happens at the edge of failure."
-              }"
-            </p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
-              <ResultMetric label="Accuracy" value={`${Math.round((gameState.score / gameState.totalQuestions) * 100)}%`} icon={<Target className="w-5 h-5 text-emerald-400" />} />
-              <ResultMetric label="Score" value={`${gameState.score}/${gameState.totalQuestions}`} icon={<Trophy className="w-5 h-5 text-amber-400" />} />
-              <ResultMetric label="Time" value={`${Math.floor((gameState.endTime! - gameState.startTime) / 1000)}s`} icon={<Timer className="w-5 h-5 text-blue-400" />} />
-              <ResultMetric label="Speed" value={`${(Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10 / gameState.totalQuestions).toFixed(1)}s/q`} icon={<Zap className="w-5 h-5 text-purple-400" />} />
-            </div>
+            {(() => {
+              const derivedHistory = gameState.questions.map((gq, i) => {
+                 const userSelection = gameState.answers[i] || 'skipped';
+                 const isCorrect = userSelection !== 'skipped' && String(userSelection).trim() === String(gq.question.answer).trim();
+                 return { question: gq.question, userSelection, isCorrect };
+              });
+              const correctCount = derivedHistory.filter(h => h.isCorrect).length;
+              const accuracy = Math.round((correctCount / gameState.totalQuestions) * 100);
 
-            <div className="flex-1 space-y-4 mb-16 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 sticky top-0 bg-[#0A0F16] py-2">Detailed Analysis</h3>
-              {gameState.history.map((h, i) => (
-                <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-[#111827] border-emerald-500/30 border-l-4 border-l-emerald-500 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' : 'bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-[0_4px_20px_rgba(239,68,68,0.05)]'}`}>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
-                    <span className="text-xl md:text-2xl font-black text-white">{h.question.expression}</span>
+              return (
+                <>
+                  <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-2 text-center drop-shadow-lg">ELITE<br />RESULTS.</h2>
+                  <p className="text-blue-400 text-center text-sm tracking-[0.3em] font-bold uppercase mb-16">
+                    "{
+                      accuracy === 100 ? "Flawless precision. Pure mastery." :
+                      accuracy >= 90 ? "Almost perfect. Sharp focus." :
+                      accuracy >= 75 ? "Great run. Refine for perfection." :
+                      accuracy >= 50 ? "Good ground covered. Keep scaling." :
+                      "Growth happens at the edge of failure."
+                    }"
+                  </p>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
+                    <ResultMetric label="Accuracy" value={`${accuracy}%`} icon={<Target className="w-5 h-5 text-emerald-400" />} />
+                    <ResultMetric label="Score" value={`${correctCount}/${gameState.totalQuestions}`} icon={<Trophy className="w-5 h-5 text-amber-400" />} />
+                    <ResultMetric label="Time" value={`${Math.floor((gameState.endTime! - gameState.startTime) / 1000)}s`} icon={<Timer className="w-5 h-5 text-blue-400" />} />
+                    <ResultMetric label="Speed" value={`${(Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10 / gameState.totalQuestions).toFixed(1)}s/q`} icon={<Zap className="w-5 h-5 text-purple-400" />} />
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Your Answer</div>
-                      <div className={`font-black text-lg ${h.isCorrect ? 'text-emerald-400' : 'text-red-400'}`}>{h.userSelection}</div>
-                    </div>
-                    {!h.isCorrect && (
-                       <div className="text-right pl-6 border-l w-24 border-white/10">
-                        <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Correct</div>
-                        <div className="font-black text-lg text-emerald-400">{h.question.answer}</div>
+
+                  <div className="flex-1 space-y-4 mb-16 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 sticky top-0 bg-[#0A0F16] py-2 z-10">Detailed Analysis</h3>
+                    {derivedHistory.map((h, i) => (
+                      <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-[#111827] border-emerald-500/30 border-l-4 border-l-emerald-500 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' : 'bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-[0_4px_20px_rgba(239,68,68,0.05)]'}`}>
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
+                          <span className="text-xl md:text-2xl font-black text-white">{h.question.expression}</span>
+                        </div>
+                        <div className="flex items-center gap-6">
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Your Answer</div>
+                            <div className={`font-black text-lg ${h.isCorrect ? 'text-emerald-400' : 'text-red-400 opacity-80'}`}>
+                              {h.userSelection === 'skipped' ? 'Skipped' : h.userSelection}
+                            </div>
+                          </div>
+                          {!h.isCorrect && (
+                            <div className="text-right pl-6 border-l w-24 border-white/10">
+                              <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Correct</div>
+                              <div className="font-black text-emerald-400 text-lg">{h.question.answer}</div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
 
-            <button 
-              onClick={resetGame}
-              className="w-full mt-auto bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)] group relative"
-            >
-              Restart Arena <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-              <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-white/50 tracking-widest uppercase">
-                Press [Enter]
-              </span>
-            </button>
+                  <button 
+                    onClick={resetGame}
+                    className="w-full mt-auto bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)] group relative cursor-pointer"
+                  >
+                    Restart Arena <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+                    <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-white/50 tracking-widest uppercase">
+                      Press [Enter]
+                    </span>
+                  </button>
+                </>
+              );
+            })()}
           </motion.div>
         )}
 
@@ -790,7 +1275,7 @@ function CategoryBtn({ name, onClick }: { name: string; onClick: () => void; key
   );
 }
 
-function DifficultyCard({ level, onClick }: { level: Difficulty; onClick: () => void; key?: React.Key }) {
+function DifficultyCard({ level, onClick, selected }: { level: Difficulty; onClick: () => void; selected?: boolean; key?: React.Key }) {
   const descMap: any = {
     Beginner: "Single digits, simple logic",
     Intermediate: "Double digits, focused math",
@@ -803,17 +1288,19 @@ function DifficultyCard({ level, onClick }: { level: Difficulty; onClick: () => 
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="w-full p-6 text-left rounded-2xl border border-white/5 bg-[#111827] hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all group"
+      className={`w-full p-6 text-left rounded-2xl border transition-all group ${selected ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'border-white/5 bg-[#111827] hover:border-blue-500/50 hover:bg-white/5'}`}
     >
       <div className="flex justify-between items-center mb-1">
-        <span className="text-xl font-black uppercase tracking-tight text-white group-hover:text-blue-400 transition-colors">{level} {diffEmojis[level]}</span>
+        <span className={`text-xl font-black uppercase tracking-tight transition-colors ${selected ? 'text-blue-400' : 'text-white group-hover:text-blue-400'}`}>
+          {level} {diffEmojis[level]}
+        </span>
         <div className="flex gap-1">
           {Array.from({ length: ['Beginner', 'Intermediate', 'Advanced', 'Expert'].indexOf(level) + 1 }).map((_, i) => (
-            <div key={i} className="w-1.5 h-3 bg-blue-500/80 rounded-[1px] shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            <div key={i} className={`w-1.5 h-3 rounded-[1px] ${selected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-blue-500/80 shadow-[0_0_8px_rgba(59,130,246,0.5)]'}`} />
           ))}
         </div>
       </div>
-      <p className="text-gray-500 text-xs">{descMap[level]}</p>
+      <p className={`text-xs ${selected ? 'text-blue-200' : 'text-gray-500'}`}>{descMap[level]}</p>
     </motion.button>
   );
 }

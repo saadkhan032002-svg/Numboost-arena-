@@ -10,10 +10,22 @@ export interface Question {
   category: string;
 }
 
+const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+
+const getFloat = (min: number, max: number, dp: number): number => {
+  let val: number;
+  do {
+    val = parseFloat((Math.random() * (max - min) + min).toFixed(dp));
+  } while (Number.isInteger(val)); // Force true decimals
+  return val;
+};
+
+const getInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
 export const generateQuestion = (
-  category: string,
+  category: string, // Can be "Fractions-Addition", "Decimals-Mix", etc.
   difficulty?: Difficulty,
-  customRange?: { start: number; end: number }
+  customRange?: { start: number | ''; end: number | '' }
 ): Question => {
   const id = Math.random().toString(36).substring(7);
   let expression = '';
@@ -21,7 +33,7 @@ export const generateQuestion = (
 
   const getRangeMap = (diff: Difficulty = 'Beginner'): [number, number] => {
     const map: Record<Difficulty, [number, number]> = {
-      Beginner: [1, 10],
+      Beginner: [2, 10],
       Intermediate: [10, 50],
       Advanced: [50, 200],
       Expert: [100, 1000],
@@ -31,84 +43,172 @@ export const generateQuestion = (
 
   const [min, max] = getRangeMap(difficulty || 'Beginner');
 
-  switch (category) {
+  // Parse category for Decimals and Fractions subcategories
+  let mainCat = category;
+  let subOp = 'Addition';
+  if (category.startsWith('Decimals-') || category.startsWith('Fractions-')) {
+    [mainCat, subOp] = category.split('-');
+  }
+
+  // Handle Mix subcategories
+  if (subOp === 'Mix') {
+    const ops = ['Addition', 'Subtraction', 'Multiplication', 'Division'];
+    subOp = ops[getInt(0, 3)];
+  }
+
+  switch (mainCat) {
     case 'Addition': {
-      const a = Math.floor(Math.random() * (max - min + 1)) + min;
-      const b = Math.floor(Math.random() * (max - min + 1)) + min;
+      const a = getInt(min, max);
+      const b = getInt(min, max);
       expression = `${a} + ${b}`;
       answer = a + b;
       break;
     }
     case 'Subtraction': {
-      const a = Math.floor(Math.random() * (max - min + 1)) + min;
-      const b = Math.floor(Math.random() * a);
+      const a = getInt(min, max);
+      const b = getInt(min, a); // Ensure non-negative
       expression = `${a} - ${b}`;
       answer = a - b;
       break;
     }
     case 'Multiplication': {
-      const a = difficulty === 'Expert' ? Math.floor(Math.random() * 50) + 10 : Math.floor(Math.random() * 20) + 2;
-      const b = difficulty === 'Expert' ? Math.floor(Math.random() * 20) + 2 : Math.floor(Math.random() * 10) + 2;
+      const mulDiffMap = {
+        Beginner: [2, 10],
+        Intermediate: [10, 20],
+        Advanced: [20, 50],
+        Expert: [50, 100],
+      };
+      const r = mulDiffMap[difficulty || 'Beginner'];
+      const a = getInt(r[0], r[1]);
+      const b = getInt(r[0], difficulty === 'Expert' ? 50 : 12);
       expression = `${a} × ${b}`;
       answer = a * b;
       break;
     }
     case 'Division': {
-      const b = Math.floor(Math.random() * 10) + 2;
-      const a = b * (Math.floor(Math.random() * 10) + 2);
+      const b = getInt(2, difficulty === 'Beginner' ? 10 : (difficulty === 'Expert' ? 50 : 20));
+      const mult = getInt(min, max / 2);
+      const a = b * mult;
       expression = `${a} ÷ ${b}`;
-      answer = a / b;
+      answer = mult;
       break;
     }
     case 'Tables': {
-      const start = customRange?.start || 2;
-      const end = Math.max(start, customRange?.end || 12);
-      const table = Math.floor(Math.random() * (end - start + 1)) + start;
-      const multiplier = Math.floor(Math.random() * 10) + 1;
+      const start = typeof customRange?.start === 'number' ? customRange.start : 2;
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 12);
+      const table = getInt(start, end);
+      const multiplier = getInt(1, 10);
       expression = `${table} × ${multiplier}`;
       answer = table * multiplier;
       break;
     }
     case 'Squares': {
-      const start = customRange?.start || 1;
-      const end = Math.max(start, customRange?.end || 20);
-      const val = Math.floor(Math.random() * (end - start + 1)) + start;
+      const start = typeof customRange?.start === 'number' ? customRange.start : 1;
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 20);
+      const val = getInt(start, end);
       expression = `${val}²`;
       answer = val * val;
       break;
     }
     case 'Cubes': {
-      const start = customRange?.start || 1;
-      const end = Math.max(start, customRange?.end || 10);
-      const val = Math.floor(Math.random() * (end - start + 1)) + start;
+      const start = typeof customRange?.start === 'number' ? customRange.start : 1;
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 10);
+      const val = getInt(start, end);
       expression = `${val}³`;
       answer = val * val * val;
       break;
     }
     case 'Roots': {
-      const start = customRange?.start || 1;
-      const end = Math.max(start, customRange?.end || 20);
-      const val = Math.floor(Math.random() * (end - start + 1)) + start;
+      const start = typeof customRange?.start === 'number' ? customRange.start : 1;
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 20);
+      const val = getInt(start, end);
       expression = `√${val * val}`;
       answer = val;
       break;
     }
     case 'Decimals': {
-      const a = (Math.random() * max).toFixed(1);
-      const b = (Math.random() * max).toFixed(1);
-      expression = `${a} + ${b}`;
-      answer = parseFloat((parseFloat(a) + parseFloat(b)).toFixed(1));
+      let dp = 1;
+      let wholeMax = 10;
+      if (difficulty === 'Intermediate') { dp = 1; wholeMax = 50; }
+      if (difficulty === 'Advanced') { dp = 2; wholeMax = 100; }
+      if (difficulty === 'Expert') { dp = 3; wholeMax = 500; }
+
+      const a = getFloat(1, wholeMax, dp);
+      const b = getFloat(1, wholeMax, dp);
+
+      if (subOp === 'Addition') {
+        expression = `${a} + ${b}`;
+        answer = parseFloat((a + b).toFixed(dp));
+      } else if (subOp === 'Subtraction') {
+        const big = Math.max(a, b);
+        const small = Math.min(a, b);
+        expression = `${big} - ${small}`;
+        answer = parseFloat((big - small).toFixed(dp));
+      } else if (subOp === 'Multiplication') {
+        const ma = getFloat(2, difficulty === 'Advanced' || difficulty === 'Expert' ? 20 : 10, dp === 1 ? 1 : 2);
+        const mb = getFloat(2, difficulty === 'Expert' ? 10 : 5, 1);
+        expression = `${ma} × ${mb}`;
+        const totalDp = dp === 1 ? 2 : 3;
+        answer = parseFloat((ma * mb).toFixed(totalDp));
+      } else if (subOp === 'Division') {
+         const db = getFloat(1, 10, 1);
+         const mult = getInt(2, difficulty === 'Advanced' || difficulty === 'Expert' ? 50 : 10);
+         const da = parseFloat((db * mult).toFixed(1));
+         expression = `${da} ÷ ${db}`;
+         answer = mult;
+      }
       break;
     }
     case 'Fractions': {
-      const d1 = Math.floor(Math.random() * 8) + 2;
-      const n1 = Math.floor(Math.random() * (d1 - 1)) + 1;
-      const d2 = d1;
-      const n2 = Math.floor(Math.random() * (d2 - 1)) + 1;
-      expression = `${n1}/${d1} + ${n2}/${d2}`;
-      const resN = n1 + n2;
-      const resD = d1;
-      answer = `${resN}/${resD}`;
+      let dMax = 5;
+      if (difficulty === 'Intermediate') dMax = 10;
+      if (difficulty === 'Advanced') dMax = 20;
+      if (difficulty === 'Expert') dMax = 50;
+
+      let d1 = getInt(3, dMax);
+      let n1 = getInt(1, d1 - 1);
+      if (difficulty === 'Expert') n1 = getInt(1, d1 * 2); // improper fractions ok
+
+      let d2 = getInt(3, dMax);
+      let n2 = getInt(1, d2 - 1);
+      if (difficulty === 'Expert') n2 = getInt(1, d2 * 2);
+
+      if (subOp === 'Addition' || subOp === 'Subtraction') {
+        if (difficulty === 'Beginner') d2 = d1; // Same denominator for beginners
+        
+        const num1 = n1 * d2;
+        const num2 = n2 * d1;
+
+        if (subOp === 'Subtraction' && num1 < num2) {
+           [n1, d1, n2, d2] = [n2, d2, n1, d1];
+        }
+
+        const commonD = d1 * d2;
+        const finalNum = subOp === 'Addition' ? (n1 * d2) + (n2 * d1) : Math.abs((n1 * d2) - (n2 * d1));
+        
+        expression = `${n1}/${d1} ${subOp === 'Addition' ? '+' : '-'} ${n2}/${d2}`;
+        
+        const divis = gcd(finalNum, commonD);
+        if (finalNum === 0) answer = "0";
+        else if (finalNum/divis === commonD/divis) answer = "1";
+        else answer = `${finalNum/divis}/${commonD/divis}`;
+
+      } else if (subOp === 'Multiplication') {
+        expression = `${n1}/${d1} × ${n2}/${d2}`;
+        const finalNum = n1 * n2;
+        const finalD = d1 * d2;
+        const divis = gcd(finalNum, finalD);
+        if (finalNum/divis === finalD/divis) answer = "1";
+        else answer = `${finalNum/divis}/${finalD/divis}`;
+      } else if (subOp === 'Division') {
+        expression = `${n1}/${d1} ÷ ${n2}/${d2}`;
+        const finalNum = n1 * d2;
+        const finalD = d1 * n2;
+        const divis = gcd(finalNum, finalD);
+         if (finalNum/divis === finalD/divis) answer = "1";
+         else if (finalD/divis === 1) answer = String(finalNum/divis);
+        else answer = `${finalNum/divis}/${finalD/divis}`;
+      }
       break;
     }
     default:
@@ -117,6 +217,39 @@ export const generateQuestion = (
   }
 
   return { id, expression, answer, type: category, category };
+};
+
+export const generateSmartDecoys = (q: Question): (number | string)[] => {
+  const decoys = new Set<string | number>();
+  
+  if (typeof q.answer === 'string' && q.answer.includes('/')) {
+    // Fraction decoys
+    const [n, d] = q.answer.split('/').map(Number);
+    while (decoys.size < 3) {
+      const offsetN = Math.floor(Math.random() * 3) - 1;
+      const offsetD = Math.floor(Math.random() * 3) - 1;
+      const newN = Math.max(1, n + offsetN);
+      const newD = Math.max(2, d + offsetD);
+      const dec = `${newN}/${newD}`;
+      if (dec !== q.answer) decoys.add(dec);
+    }
+  } else if (typeof q.answer === 'number' && !Number.isInteger(q.answer)) {
+    // Decimal decoys
+    while (decoys.size < 3) {
+      const offset = (Math.random() * 2 - 1).toFixed(1);
+      const dec = parseFloat((q.answer + parseFloat(offset)).toFixed(1));
+      if (dec !== q.answer) decoys.add(dec);
+    }
+  } else {
+    // Integer decoys
+    while (decoys.size < 3) {
+      const offset = Math.floor(Math.random() * 10) - 5;
+      if (offset === 0) continue;
+      const dec = (typeof q.answer === 'number' ? q.answer : parseInt(q.answer)) + offset;
+      if (dec !== q.answer && dec > 0) decoys.add(dec);
+    }
+  }
+  return Array.from(decoys);
 };
 
 export const shuffleArray = <T>(array: T[]): T[] => {
