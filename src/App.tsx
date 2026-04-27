@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { generateQuestion, Difficulty, Question, shuffleArray, generateSmartDecoys } from './lib/mathEngine';
 import { jsPDF } from 'jspdf';
+import { playClick, playCorrect, playWrong, playNumpad } from './lib/audioEngine';
 
 type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'results' | 'custom' | 'about';
 
@@ -100,6 +101,20 @@ export default function App() {
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName.toLowerCase() === 'button' || target.closest('button') || target.tagName.toLowerCase() === 'a' || target.closest('a')) {
+        const btn = target.closest('button') || target.closest('a');
+        if (btn?.dataset.sound !== 'none' && btn?.dataset.sound !== 'numpad') {
+          playClick();
+        }
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
   }, []);
 
   const handleDownloadApp = async () => {
@@ -308,6 +323,7 @@ export default function App() {
     if (!gameState || isProcessing) return;
     
     if (gameState.isTestMode) {
+      playNumpad();
       // Test Mode logic: No immediate feedback, proceed to next
       const nextState: GameState = {
         ...gameState,
@@ -327,6 +343,11 @@ export default function App() {
       setIsProcessing(true);
       const isCorrect = String(answer).trim() === String(currentQuestion?.answer).trim();
       setLastResult({ isCorrect, show: true });
+      if (isCorrect) {
+         playCorrect();
+      } else {
+         playWrong();
+      }
 
       const nextState: GameState = {
         ...gameState,
@@ -1135,7 +1156,9 @@ export default function App() {
                     {['1', '2', '3', '/', '4', '5', '6', '-', '7', '8', '9', '.', 'DEL', '0', 'GO'].map((key) => (
                       <button
                         key={key}
+                        data-sound="numpad"
                         onClick={() => {
+                          playNumpad();
                           if (key === 'DEL') setManualInput(prev => prev.slice(0, -1));
                           else if (key === 'GO') { if (manualInput.trim()) handleAnswer(manualInput.trim()); }
                           else setManualInput(prev => prev + key);
