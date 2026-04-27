@@ -126,6 +126,19 @@ export default function App() {
   }>({ difficulty: 'Beginner', range: { start: '', end: '' }, volume: 10 });
   const [customConfig, setCustomConfig] = useState<Record<string, ActiveCategory>>({});
   const [customVolume, setCustomVolume] = useState<number>(20);
+  const [customUseTimer, setCustomUseTimer] = useState(false);
+  const [customTimerHours, setCustomTimerHours] = useState<number | ''>('');
+  const [customTimerMinutes, setCustomTimerMinutes] = useState<number | ''>(5);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (screen === 'game' && timeRemaining !== null && timeRemaining > 0) {
+      const timerId = setInterval(() => setTimeRemaining(t => (t ? t - 1 : 0)), 1000);
+      return () => clearInterval(timerId);
+    } else if (screen === 'game' && timeRemaining === 0) {
+      submitTest();
+    }
+  }, [screen, timeRemaining]);
 
   const InputToggle = () => (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 relative">
@@ -201,7 +214,7 @@ export default function App() {
     }));
   };
 
-  const handleGlobalShare = (scoreData?: { accuracy: number, score: number, total: number, speed?: string }) => {
+  const handleGlobalShare = async (scoreData?: { accuracy: number, score: number, total: number, speed?: string }) => {
     let text = "Level up your calculation speeds with NumBoost Arena! 🤯 Create custom math challenges, practice specific ranges, and challenge your limits in an immersive test mode. Let's see if you can handle the Expert level!\"\n👉 Join the Arena: https://numboostarena.netlify.app/#";
     if (scoreData) {
         text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboostarena.netlify.app/#`;
@@ -213,13 +226,12 @@ export default function App() {
            }
         });
     } else {
-        const el = document.createElement('textarea');
-        el.value = text;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        alert("Link copied to clipboard!");
+        try {
+          await navigator.clipboard.writeText(text);
+          alert("Link copied to clipboard!");
+        } catch (err) {
+          console.error("Failed to copy link: ", err);
+        }
     }
   };
 
@@ -254,6 +266,15 @@ export default function App() {
         const decoys = generateSmartDecoys(q);
         const options = shuffleArray([q.answer, ...decoys]);
         questions.push({ question: q, options });
+    }
+
+    if (isTestMode && customUseTimer && screen === 'custom') {
+      let tm = (Number(customTimerHours) || 0) * 3600 + (Number(customTimerMinutes) || 0) * 60;
+      if (tm < 60) tm = 60;
+      if (tm > 10800) tm = 10800; // max 3 hours
+      setTimeRemaining(tm);
+    } else {
+      setTimeRemaining(null);
     }
 
     const state: GameState = {
@@ -396,7 +417,7 @@ export default function App() {
         doc.line(14, 34, 196, 34);
 
         // Sanitize string for standard jsPDF encoding
-        const formatExp = (exp: string) => exp.replace(/×/g, 'x').replace(/÷/g, '/').replace(/²/g, '^2').replace(/³/g, '^3').replace(/√/g, 'v');
+        const formatExp = (exp: string) => exp.replace(/²/g, ' sq').replace(/³/g, ' cu').replace(/√/g, 'sqrt( )');
 
         // Layout Config
         const hasLongQuestions = finalQuestions.some(q => q.expression.length > 12);
@@ -537,6 +558,7 @@ export default function App() {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            role="status"
             className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#111827] border border-emerald-500/30 text-white px-5 py-4 rounded-2xl text-sm font-medium shadow-[0_10px_30px_rgba(16,185,129,0.15)] z-[100] flex items-start gap-4 backdrop-blur-xl"
           >
             <Info className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -557,6 +579,7 @@ export default function App() {
             <div className="absolute top-6 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
               <button 
                 onClick={() => setShowMenu(!showMenu)}
+                aria-label="Open menu"
                 className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
               >
                 <MoreVertical className="w-5 h-5" />
@@ -571,6 +594,7 @@ export default function App() {
                   >
                     <button 
                       onClick={() => { handleDownloadApp(); setShowMenu(false); }}
+                      aria-label="Install app"
                       className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
                     >
                       <Download className="w-5 h-5" />
@@ -578,6 +602,7 @@ export default function App() {
                     </button>
                     <button 
                       onClick={() => { handleGlobalShare(); setShowMenu(false); }}
+                      aria-label="Share"
                       className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
                     >
                       <Share2 className="w-5 h-5" />
@@ -585,6 +610,7 @@ export default function App() {
                     </button>
                     <button 
                       onClick={() => { setScreen('about'); setShowMenu(false); }}
+                      aria-label="About"
                       className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
                     >
                       <Info className="w-5 h-5" />
@@ -650,7 +676,7 @@ export default function App() {
             exit={{ opacity: 0, y: -20 }}
             className="w-full max-w-4xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('home')} className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Custom<br />Challenge.</h2>
@@ -690,6 +716,56 @@ export default function App() {
                       }}
                       className="w-full bg-transparent text-2xl font-black text-white outline-none text-center"
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 mt-2">4. Test Timer</h3>
+                  <div className="bg-[#111827] border border-white/10 rounded-xl p-4">
+                    <label className="flex items-center gap-3 cursor-pointer mb-4">
+                      <input 
+                        type="checkbox" 
+                        checked={customUseTimer}
+                        onChange={(e) => setCustomUseTimer(e.target.checked)}
+                        className="w-5 h-5 rounded border-gray-600 text-blue-500 focus:ring-blue-500/30 bg-black/40"
+                      />
+                      <span className="text-sm font-bold text-gray-300">Enable Time Limit</span>
+                    </label>
+                    
+                    {customUseTimer && (
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">Hours</label>
+                          <input 
+                            type="number" 
+                            min="0" max="3"
+                            value={customTimerHours}
+                            onChange={e => {
+                               let val = parseInt(e.target.value);
+                               if (isNaN(val) || val < 0) val = 0;
+                               if (val > 3) val = 3;
+                               setCustomTimerHours(val || '');
+                            }}
+                            className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">Minutes</label>
+                          <input 
+                            type="number" 
+                            min="0" max="59"
+                            value={customTimerMinutes}
+                            onChange={e => {
+                               let val = parseInt(e.target.value);
+                               if (isNaN(val) || val < 0) val = 0;
+                               if (val > 59) val = 59;
+                               setCustomTimerMinutes(val || '');
+                            }}
+                            className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
@@ -787,7 +863,7 @@ export default function App() {
             exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-4xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('home')} className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Choose Category</h2>
@@ -808,7 +884,7 @@ export default function App() {
             exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('categories')} className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            <button onClick={() => setScreen('categories')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">Select Operation</h2>
@@ -834,8 +910,8 @@ export default function App() {
           >
             <button onClick={() => {
               if (practiceSetupStep === 2) setPracticeSetupStep(1);
-              else setScreen(practiceCat.includes('-') ? 'subcategories' : 'categories');
-            }} className="mb-6 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+              else { setScreen(practiceCat.includes('-') ? 'subcategories' : 'categories'); setShowSubcategoriesFor(''); }
+            }} aria-label="Go back" className="mb-6 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-white">
@@ -973,23 +1049,35 @@ export default function App() {
             className="w-full max-w-4xl mx-auto px-6 pt-12 flex flex-col min-h-screen bg-transparent relative z-10"
           >
             <header className="flex justify-between items-center mb-10 w-full z-20">
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Difficulty Level</span>
                 <span className="text-lg md:text-xl font-bold text-white">
                   {getCatLabel(currentQuestion.category)} {gameState.categories.find(c => c.name === currentQuestion.category)?.difficulty ? diffEmojis[gameState.categories.find(c => c.name === currentQuestion.category)!.difficulty!] : `[${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.start || ''}-${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.end || ''}]`}
                 </span>
               </div>
-              <button 
-                onClick={() => setShowQuestionGrid(true)}
-                className="flex bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)] text-emerald-400 hover:bg-white/20 transition-all active:scale-95 cursor-pointer"
-              >
-                <div className="flex flex-col items-end">
-                    <span className="text-xs md:text-sm font-bold tracking-widest uppercase">
-                      Q {gameState.currentIndex + 1} <span className="text-emerald-400/50">/{gameState.totalQuestions}</span>
+              
+              {timeRemaining !== null && (
+                 <div className="flex flex-col items-center flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Time Limit</span>
+                    <span className="text-lg md:text-xl font-bold text-amber-400 tabular-nums">
+                       {String(Math.floor(timeRemaining / 3600)).padStart(2, '0')}:{String(Math.floor((timeRemaining % 3600) / 60)).padStart(2, '0')}:{String(timeRemaining % 60).padStart(2, '0')}
                     </span>
-                    <span className="text-[8px] tracking-widest uppercase text-white/50">Tap to view</span>
-                </div>
-              </button>
+                 </div>
+              )}
+
+              <div className="flex flex-1 justify-end">
+                <button 
+                  onClick={() => setShowQuestionGrid(true)}
+                  className="flex bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)] text-emerald-400 hover:bg-white/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  <div className="flex flex-col items-end">
+                      <span className="text-xs md:text-sm font-bold tracking-widest uppercase">
+                        Q {gameState.currentIndex + 1} <span className="text-emerald-400/50">/{gameState.totalQuestions}</span>
+                      </span>
+                      <span className="text-[8px] tracking-widest uppercase text-white/50">Tap to view</span>
+                  </div>
+                </button>
+              </div>
             </header>
 
             <main className="flex-1 flex flex-col items-center justify-center -mt-10 relative z-10 w-full">
@@ -1009,6 +1097,7 @@ export default function App() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 w-full max-w-3xl pb-8">
                   {options.map((opt, i) => (
                     <motion.button
+                      aria-label={`Answer option: ${opt}`}
                       disabled={isProcessing}
                       key={i}
                       whileTap={{ scale: 0.95 }}
@@ -1125,6 +1214,7 @@ export default function App() {
                 >
                   <button 
                     onClick={() => setShowQuestionGrid(false)} 
+                    aria-label="Close question grid"
                     className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white transition-all shadow-xl"
                   >
                     ✕
@@ -1283,6 +1373,7 @@ export default function App() {
                       className="w-14 md:w-16 flex items-center justify-center bg-white/10 text-emerald-400 rounded-full hover:bg-white/20 transition-all active:scale-95 border border-white/5 shadow-lg"
                     >
                       <Share2 className="w-5 h-5 md:w-6 md:h-6" />
+                      <span className="sr-only">Share result</span>
                     </button>
                   </div>
                 </>
@@ -1299,7 +1390,7 @@ export default function App() {
             exit={{ opacity: 0, scale: 1.1 }}
             className="w-full max-w-3xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
           >
-            <button onClick={() => setScreen('home')} className="mb-8 p-2 w-max -ml-2 hover:bg-white/10 rounded-full text-gray-400 transition-colors">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-white/10 rounded-full text-gray-400 transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-5xl md:text-7xl font-black tracking-tight mb-12 text-white">Developers.</h2>
