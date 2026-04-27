@@ -19,7 +19,9 @@ import {
   Heart,
   Share2,
   Info,
-  Download
+  Download,
+  MoreVertical,
+  Mail
 } from 'lucide-react';
 import { generateQuestion, Difficulty, Question, shuffleArray, generateSmartDecoys } from './lib/mathEngine';
 import { jsPDF } from 'jspdf';
@@ -87,6 +89,32 @@ export default function App() {
   const [manualInput, setManualInput] = useState('');
   const [showManualInfo, setShowManualInfo] = useState(false);
   const [showQuestionGrid, setShowQuestionGrid] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleDownloadApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      }
+      setDeferredPrompt(null);
+    } else {
+      setToastMessage('To install the app, please open it in a new tab, or use your browser menu -> "Add to Home Screen".');
+      setTimeout(() => setToastMessage(''), 5000);
+    }
+  };
 
   const [practiceCat, setPracticeCat] = useState<string>('');
   const [practiceSetupStep, setPracticeSetupStep] = useState<1 | 2>(1);
@@ -179,7 +207,11 @@ export default function App() {
         text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboostarena.netlify.app/#`;
     }
     if (navigator.share) {
-        navigator.share({ text }).catch(console.error);
+        navigator.share({ text }).catch((err) => {
+           if (err.name !== 'AbortError') {
+             console.log('Share error:', err);
+           }
+        });
     } else {
         const el = document.createElement('textarea');
         el.value = text;
@@ -499,6 +531,20 @@ export default function App() {
       <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
 
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#111827] border border-emerald-500/30 text-white px-5 py-4 rounded-2xl text-sm font-medium shadow-[0_10px_30px_rgba(16,185,129,0.15)] z-[100] flex items-start gap-4 backdrop-blur-xl"
+          >
+            <Info className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence mode="wait">
         {screen === 'home' && (
           <motion.div 
@@ -506,15 +552,47 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-5xl mx-auto px-6 lg:px-12 pt-8 md:pt-16 h-screen flex flex-col md:flex-row relative items-center justify-center gap-12"
+            className="w-full max-w-5xl mx-auto px-5 md:px-8 lg:px-12 pt-[15vh] md:pt-16 min-h-[100dvh] flex flex-col md:flex-row relative items-start md:items-center justify-start md:justify-center gap-10 md:gap-12 pb-12"
           >
-            <div className="absolute top-8 right-6 md:right-12">
+            <div className="absolute top-6 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
               <button 
-                onClick={() => setScreen('about')}
-                className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest text-gray-300 flex items-center gap-2 backdrop-blur-md"
+                onClick={() => setShowMenu(!showMenu)}
+                className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
               >
-                <Info className="w-3 h-3" /> About Us
+                <MoreVertical className="w-5 h-5" />
               </button>
+              <AnimatePresence>
+                {showMenu && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    className="flex flex-col gap-2"
+                  >
+                    <button 
+                      onClick={() => { handleDownloadApp(); setShowMenu(false); }}
+                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                    >
+                      <Download className="w-5 h-5" />
+                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Install</span>
+                    </button>
+                    <button 
+                      onClick={() => { handleGlobalShare(); setShowMenu(false); }}
+                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                    >
+                      <Share2 className="w-5 h-5" />
+                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Share</span>
+                    </button>
+                    <button 
+                      onClick={() => { setScreen('about'); setShowMenu(false); }}
+                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                    >
+                      <Info className="w-5 h-5" />
+                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">About</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
             <header className="md:w-1/2 flex flex-col md:pr-12 md:pb-24">
@@ -531,7 +609,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-6xl md:text-8xl font-black tracking-tight leading-[0.9] mb-6 text-white"
+                className="text-[13.5vw] sm:text-6xl md:text-8xl font-black tracking-tight leading-[0.9] mb-4 md:mb-6 text-white"
               >
                 NUMBOOST<br />ARENA
               </motion.h1>
@@ -1231,7 +1309,24 @@ export default function App() {
               <DevCard name="SAAD" role="Experience Developer" bio="Focused on high-performance interactive experiences and premium UI systems." />
             </div>
 
-            <div className="mt-12 md:mt-20 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-white relative overflow-hidden group shadow-2xl border border-white/10">
+            <div className="mt-8 p-6 md:p-8 bg-[#111827] border border-white/5 rounded-[32px] hover:border-emerald-500/30 transition-colors shadow-sm relative overflow-hidden group">
+              <div className="flex flex-col md:flex-row gap-6 md:items-center">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-blue-500 flex items-center justify-center shadow-lg shrink-0">
+                  <Mail className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-2xl text-white tracking-tight mb-2">Get in Touch</h3>
+                  <p className="text-gray-400 text-sm md:text-base mb-4 max-w-lg leading-relaxed">
+                    Please let us know your experience, any feature requests, or just drop by to say hi! We are constantly looking to improve the Arena and build the ultimate math training tool.
+                  </p>
+                  <a href="mailto:numboostarenaofficial@gmail.com" className="inline-flex items-center gap-2 text-emerald-400 font-bold tracking-wide hover:text-emerald-300 transition-colors bg-emerald-500/10 px-4 py-2 rounded-xl text-sm md:text-base break-all">
+                    numboostarenaofficial@gmail.com
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-white relative overflow-hidden group shadow-2xl border border-white/10">
               <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:rotate-12 group-hover:scale-110 transition-transform">
                 <Zap className="w-40 h-40 md:w-64 md:h-64 fill-white/20" />
               </div>
@@ -1258,12 +1353,14 @@ function MenuCard({ icon, title, description, onClick, accent }: { icon: React.R
 
   return (
     <motion.button 
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -6, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className="group w-full p-6 bg-white/5 border border-white/5 rounded-2xl text-left flex items-center gap-5 transition-all hover:bg-white/10 hover:border-white/10 relative overflow-hidden"
+      className="group w-full p-6 bg-gradient-to-br from-white/5 to-[#0F1626] border border-white/5 rounded-2xl text-left flex items-center gap-5 transition-all hover:bg-white/10 hover:border-white/10 hover:shadow-[0_10px_30px_rgba(255,255,255,0.03)] relative overflow-hidden"
     >
-      <div className={`p-4 rounded-xl transition-colors ${accentClasses[accent]} bg-white/5 text-gray-400`}>
+      <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      <div className={`p-4 rounded-xl transition-colors ${accentClasses[accent]} bg-white/5 text-gray-400 relative z-10`}>
         {icon}
       </div>
       <div className="flex-1">
@@ -1278,12 +1375,15 @@ function MenuCard({ icon, title, description, onClick, accent }: { icon: React.R
 function CategoryBtn({ name, onClick }: { name: string; onClick: () => void; key?: React.Key }) {
   return (
     <motion.button
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={onClick}
-      className="p-5 bg-[#111827] border border-white/5 rounded-2xl text-sm font-bold text-gray-400 hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-900/20 transition-all flex items-center justify-between group shadow-sm"
+      className="p-5 bg-gradient-to-br from-[#111827] to-[#0A0F16] border border-white/5 rounded-2xl text-sm font-bold text-gray-400 hover:text-blue-400 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all flex items-center justify-between group overflow-hidden relative"
     >
-      {name}
-      <Zap className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-blue-400" />
+      <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <span className="relative z-10">{name}</span>
+      <Zap className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-blue-400 relative z-10" />
     </motion.button>
   );
 }
@@ -1298,12 +1398,14 @@ function DifficultyCard({ level, onClick, selected }: { level: Difficulty; onCli
   
   return (
     <motion.button
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.02, y: -3 }}
       whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`w-full p-6 text-left rounded-2xl border transition-all group ${selected ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'border-white/5 bg-[#111827] hover:border-blue-500/50 hover:bg-white/5'}`}
+      className={`relative overflow-hidden w-full p-6 text-left rounded-2xl border transition-all duration-300 group ${selected ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-blue-500 shadow-[0_10px_40px_rgba(59,130,246,0.25)]' : 'border-white/5 bg-[#111827] hover:border-blue-500/50 hover:shadow-[0_8px_30px_rgba(255,255,255,0.03)]'}`}
     >
-      <div className="flex justify-between items-center mb-1">
+      {!selected && <div className="absolute inset-0 bg-blue-900/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+      <div className="flex justify-between items-center mb-1 relative z-10">
         <span className={`text-xl font-black uppercase tracking-tight transition-colors ${selected ? 'text-blue-400' : 'text-white group-hover:text-blue-400'}`}>
           {level} {diffEmojis[level]}
         </span>
