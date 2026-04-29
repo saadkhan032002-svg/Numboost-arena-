@@ -43,14 +43,27 @@ export const generateQuestion = (
 
   const [min, max] = getRangeMap(difficulty || 'Beginner');
 
-  // Parse category for Decimals and Fractions subcategories
-  let mainCat = category;
-  let subOp = 'Addition';
-  if (category.startsWith('Decimals-') || category.startsWith('Fractions-')) {
-    [mainCat, subOp] = category.split('-');
+  let targetCategory = category;
+
+  if (targetCategory === 'Random') {
+    const all = ['Addition', 'Subtraction', 'Multiplication', 'Division', 'Decimals-Mix', 'Fractions-Mix', 'Tables', 'Squares', 'Cubes', 'Roots'];
+    targetCategory = all[getInt(0, all.length - 1)];
   }
 
-  // Handle Mix subcategories
+  // Parse category for Decimals and Fractions subcategories
+  let mainCat = targetCategory;
+  let subOp = 'Addition';
+  if (targetCategory.startsWith('Decimals-') || targetCategory.startsWith('Fractions-')) {
+    [mainCat, subOp] = targetCategory.split('-');
+  }
+
+  // Handle main level Mix
+  if (mainCat === 'Mix') {
+    const ops = ['Addition', 'Subtraction', 'Multiplication', 'Division'];
+    mainCat = ops[getInt(0, 3)];
+  }
+
+  // Handle sub-level Mix (e.g. Fractions-Mix)
   if (subOp === 'Mix') {
     const ops = ['Addition', 'Subtraction', 'Multiplication', 'Division'];
     subOp = ops[getInt(0, 3)];
@@ -95,7 +108,14 @@ export const generateQuestion = (
     }
     case 'Tables': {
       const start = typeof customRange?.start === 'number' ? customRange.start : 2;
-      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 12);
+      let limit = 12;
+      if (!customRange) {
+        if (difficulty === 'Beginner') limit = 5;
+        else if (difficulty === 'Intermediate') limit = 10;
+        else if (difficulty === 'Advanced') limit = 15;
+        else if (difficulty === 'Expert') limit = 20;
+      }
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, limit);
       const table = getInt(start, end);
       const multiplier = getInt(1, 10);
       expression = `${table} × ${multiplier}`;
@@ -104,7 +124,14 @@ export const generateQuestion = (
     }
     case 'Squares': {
       const start = typeof customRange?.start === 'number' ? customRange.start : 1;
-      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 20);
+      let limit = 20;
+      if (!customRange) {
+        if (difficulty === 'Beginner') limit = 10;
+        else if (difficulty === 'Intermediate') limit = 20;
+        else if (difficulty === 'Advanced') limit = 30;
+        else if (difficulty === 'Expert') limit = 40;
+      }
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, limit);
       const val = getInt(start, end);
       expression = `${val}²`;
       answer = val * val;
@@ -112,7 +139,14 @@ export const generateQuestion = (
     }
     case 'Cubes': {
       const start = typeof customRange?.start === 'number' ? customRange.start : 1;
-      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 10);
+      let limit = 10;
+      if (!customRange) {
+        if (difficulty === 'Beginner') limit = 5;
+        else if (difficulty === 'Intermediate') limit = 10;
+        else if (difficulty === 'Advanced') limit = 15;
+        else if (difficulty === 'Expert') limit = 20;
+      }
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, limit);
       const val = getInt(start, end);
       expression = `${val}³`;
       answer = val * val * val;
@@ -120,8 +154,16 @@ export const generateQuestion = (
     }
     case 'Roots': {
       const start = typeof customRange?.start === 'number' ? customRange.start : 1;
-      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, 20);
+      let limit = 20;
+      if (!customRange) {
+        if (difficulty === 'Beginner') limit = 6;
+        else if (difficulty === 'Intermediate') limit = 12;
+        else if (difficulty === 'Advanced') limit = 18;
+        else if (difficulty === 'Expert') limit = 24;
+      }
+      const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, limit);
       const val = getInt(start, end);
+      // For beginner, it generates e.g. √4, √9, roots from 1 to 6.
       expression = `√${val * val}`;
       answer = val;
       break;

@@ -91,6 +91,9 @@ export default function App() {
   const [showManualInfo, setShowManualInfo] = useState(false);
   const [showQuestionGrid, setShowQuestionGrid] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showRandomAllInfo, setShowRandomAllInfo] = useState(false);
+  const [showCustomRandomInfo, setShowCustomRandomInfo] = useState(false);
+  const [showRangeInfo, setShowRangeInfo] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -106,6 +109,15 @@ export default function App() {
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      
+      if (!target.closest('.info-popup-content') && !target.closest('.info-popup-trigger')) {
+        setShowMenu(false);
+        setShowManualInfo(false);
+        setShowRandomAllInfo(false);
+        setShowCustomRandomInfo(false);
+        setShowRangeInfo(false);
+      }
+
       if (target.tagName.toLowerCase() === 'button' || target.closest('button') || target.tagName.toLowerCase() === 'a' || target.closest('a')) {
         const btn = target.closest('button') || target.closest('a');
         if (btn?.dataset.sound !== 'none' && btn?.dataset.sound !== 'numpad') {
@@ -156,39 +168,52 @@ export default function App() {
   }, [screen, timeRemaining]);
 
   const InputToggle = () => (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4 relative">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-          <Target className="w-5 h-5" />
-        </div>
-        <div className="text-left">
-          <h3 className="font-bold">Input Mode</h3>
-          <p className="text-xs text-gray-400">Choose how to answer</p>
+    <div className="bg-[#111827]/80 backdrop-blur-md border border-white/5 rounded-2xl mb-6 flex flex-row items-stretch shadow-xl w-full max-w-sm mx-auto">
+      <div className="w-[45%] flex flex-col justify-center p-3 border-r border-white/5">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-500/10 flex flex-shrink-0 items-center justify-center text-blue-400">
+            <Target className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-200 leading-tight">Input<br/>Mode</h3>
+            <p className="text-[8px] uppercase tracking-wider text-gray-500 mt-0.5">How to answer</p>
+          </div>
         </div>
       </div>
       
-      <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-full ring-1 ring-white/10 relative">
+      <div className="w-[55%] bg-black/40 relative flex flex-col rounded-r-2xl overflow-hidden info-popup-trigger">
+        <motion.div
+           className="absolute left-0 right-0 h-[50%] z-0"
+           initial={false}
+           animate={{
+             top: gameMode === 'mcq' ? '0%' : '50%',
+             backgroundColor: gameMode === 'mcq' ? '#2563EB' : '#059669' // blue-600 vs emerald-600
+           }}
+           transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+        
         <button 
           onClick={() => setGameMode('mcq')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${gameMode === 'mcq' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-white/5 ${gameMode === 'mcq' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
         >
           Options
         </button>
         <button 
           onClick={() => setGameMode('manual')}
-          className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${gameMode === 'manual' ? 'bg-emerald-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
         >
           Manual 
           <div 
             onClick={(e) => { e.stopPropagation(); setShowManualInfo(!showManualInfo); }}
-            className="p-1 -m-1 hover:bg-white/10 rounded-full transition-all"
+            className="w-4 h-4 rounded-full border border-current opacity-70 hover:opacity-100 flex items-center justify-center text-[9px] font-black pointer-events-auto"
           >
-            <Info className="w-3 h-3 opacity-80" />
+            !
           </div>
         </button>
+        
         {showManualInfo && (
-          <div className="absolute top-full mt-2 right-0 w-48 bg-gray-800 text-xs text-white p-3 rounded-xl border border-white/10 shadow-2xl z-50">
-            Type the exact answer manually. Perfect for rigorous mental math training without relying on hints!
+          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-[#0A0F16] text-[10px] text-gray-300 p-3 rounded-xl border border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
+            Type exact answers manually using keyboard. Perfect for rigorous training.
           </div>
         )}
       </div>
@@ -601,7 +626,7 @@ export default function App() {
               <button 
                 onClick={() => setShowMenu(!showMenu)}
                 aria-label="Open menu"
-                className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
+                className="info-popup-trigger bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
@@ -611,7 +636,7 @@ export default function App() {
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className="flex flex-col gap-2"
+                    className="info-popup-content flex flex-col gap-2"
                   >
                     <button 
                       onClick={() => { handleDownloadApp(); setShowMenu(false); }}
@@ -675,14 +700,14 @@ export default function App() {
                 icon={<Target className="w-6 h-6" />}
                 title="Practice Mode"
                 description="Master specific arithmetic skills"
-                onClick={() => setScreen('categories')}
+                onClick={() => { setScreen('categories'); setShowMenu(false); }}
                 accent="orange"
               />
               <MenuCard 
                 icon={<Settings2 className="w-6 h-6" />}
                 title="Custom Test"
                 description="Build your perfect challenge"
-                onClick={() => setScreen('custom')}
+                onClick={() => { setScreen('custom'); setShowMenu(false); }}
                 accent="zinc"
               />
             </div>
@@ -701,62 +726,73 @@ export default function App() {
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Custom<br />Challenge.</h2>
-            <InputToggle />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
               <section className="space-y-8">
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2">1. Select Pillars</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2">1. Select Pillars</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {PRACTICE_CATS.map((pillar) => (
                       <button 
                         key={pillar.id}
                         onClick={() => toggleCustomCategory(pillar.id)}
-                        className={`p-3 rounded-xl border text-[11px] md:text-xs font-bold transition-all ${
-                          customConfig[pillar.id] ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white border-blue-500/50 shadow-lg' : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:bg-white/10'
+                        className={`p-3 rounded-xl border text-[13px] md:text-sm font-bold transition-all ${
+                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white border-blue-500/50 shadow-lg' : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:bg-white/10'
                         }`}
                       >
-                        {pillar.label} {customConfig[pillar.id] && '✓'}
+                        {pillar.label} {customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] && '✓'}
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2">3. Question No.</h3>
-                  <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center">
-                    <input 
-                      type="number" 
-                      min="1" max="180"
-                      placeholder="Enter volume (Max 180)"
-                      value={customVolume || ''}
-                      onChange={(e) => {
-                        let val = parseInt(e.target.value) || 0;
-                        if (val > 180) val = 180;
-                        setCustomVolume(val);
+                    <button 
+                      onClick={() => {
+                        toggleCustomCategory('Random');
+                        if (!customConfig['Random']) {
+                          setShowCustomRandomInfo(false);
+                        }
                       }}
-                      className="w-full bg-transparent text-2xl font-black text-white outline-none text-center"
-                    />
+                      className={`col-span-2 md:col-span-3 p-4 rounded-xl border text-[13px] md:text-base uppercase tracking-widest font-black transition-all relative shadow-[0_0_15px_rgba(147,51,234,0.1)] ${
+                        customConfig['Random'] ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-500/50 shadow-lg' : 'bg-white/5 text-purple-400 border-purple-500/20 hover:border-purple-500/40 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex w-full items-center justify-center gap-2">
+                        Random (All Categories) {customConfig['Random'] && '✓'}
+                      </div>
+                      
+                      <div 
+                        onClick={(e) => { e.stopPropagation(); setShowCustomRandomInfo(!showCustomRandomInfo); }}
+                        className="info-popup-trigger absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border border-current opacity-70 hover:opacity-100 flex items-center justify-center text-[10px] font-black cursor-pointer"
+                      >
+                        !
+                        {showCustomRandomInfo && (
+                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-[#0A0F16] border border-white/10 text-[10px] font-medium text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
+                            Includes questions from every arithmetic category.
+                          </div>
+                        )}
+                      </div>
+                    </button>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 mt-2">4. Test Timer</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 mt-2">3. Test Timer</h3>
                   <div className="bg-[#111827] border border-white/10 rounded-xl p-4">
-                    <label className="flex items-center gap-3 cursor-pointer mb-4">
-                      <input 
-                        type="checkbox" 
-                        checked={customUseTimer}
-                        onChange={(e) => setCustomUseTimer(e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-600 text-blue-500 focus:ring-blue-500/30 bg-black/40"
-                      />
+                    <label className="flex items-center justify-between cursor-pointer mb-4">
                       <span className="text-sm font-bold text-gray-300">Enable Time Limit</span>
+                      <div className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={customUseTimer}
+                          onChange={(e) => setCustomUseTimer(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 hover:bg-white/20"></div>
+                      </div>
                     </label>
                     
                     {customUseTimer && (
                       <div className="flex gap-4">
                         <div className="flex-1">
-                          <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">Hours</label>
+                          <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">Hours</label>
                           <input 
                             type="number" 
                             min="0" max="3"
@@ -771,7 +807,7 @@ export default function App() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">Minutes</label>
+                          <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">Minutes</label>
                           <input 
                             type="number" 
                             min="0" max="59"
@@ -794,7 +830,7 @@ export default function App() {
               <div className="space-y-8 flex flex-col">
                 {Object.keys(customConfig).length > 0 ? (
                   <section>
-                    <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-400 mb-4 px-2">2. Difficulty Level</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-400 mb-4 px-2">2. Difficulty Level</h3>
                     <div className="space-y-3">
                       {Object.values(customConfig).map((config: ActiveCategory) => {
                         const isRange = ['Tables', 'Squares', 'Cubes', 'Roots'].includes(config.name);
@@ -804,7 +840,7 @@ export default function App() {
                             {isRange ? (
                               <div className="flex gap-4">
                                 <div className="flex-1">
-                                  <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">Start</label>
+                                  <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">Start</label>
                                   <input type="number" 
                                     className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
                                     value={config.customRange?.start === '' ? '' : (config.customRange?.start ?? '')}
@@ -815,7 +851,7 @@ export default function App() {
                                   />
                                 </div>
                                 <div className="flex-1">
-                                  <label className="text-[9px] uppercase font-bold text-gray-500 mb-1 block">End</label>
+                                  <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">End</label>
                                   <input type="number" 
                                     className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
                                     value={config.customRange?.end === '' ? '' : (config.customRange?.end ?? '')}
@@ -832,7 +868,7 @@ export default function App() {
                                   <button 
                                     key={diff}
                                     onClick={() => updateCustomCategory(config.name, { difficulty: diff })}
-                                    className={`flex-1 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                    className={`flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-widest transition-all ${
                                         config.difficulty === diff ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-inner' : 'bg-black/30 text-gray-500 border-white/5 hover:border-white/20'
                                     }`}
                                   >
@@ -852,7 +888,27 @@ export default function App() {
                   </div>
                 )}
                 
-                <div className="flex flex-col md:flex-row gap-3 mt-auto">
+                <div className="mt-4">
+                  <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2">4. Question Volume</h3>
+                  <div className="bg-[#111827] border border-white/10 rounded-2xl p-2 flex items-center shadow-inner">
+                    <input 
+                      type="number" 
+                      min="1" max="180"
+                      placeholder="Enter volume (Max 180)"
+                      value={customVolume || ''}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value) || 0;
+                        if (val > 180) val = 180;
+                        setCustomVolume(val);
+                      }}
+                      className="w-full bg-transparent text-3xl font-black text-white outline-none text-center p-3"
+                    />
+                  </div>
+                </div>
+
+                <InputToggle />
+
+                <div className="flex flex-col md:flex-row gap-3 mt-auto pt-8">
                   <button 
                     disabled={Object.keys(customConfig).length === 0 || !customVolume || isGeneratingPDF}
                     onClick={downloadCustomPDF}
@@ -888,11 +944,37 @@ export default function App() {
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Choose Category</h2>
-            <InputToggle />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {PRACTICE_CATS.map((cat) => (
                 <CategoryBtn key={cat.id} name={cat.label} onClick={() => startPractice(cat.id)} />
               ))}
+              <div className="col-span-2 md:col-span-2 relative group mt-2">
+                 <motion.button
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => startPractice('Random')}
+                  className="w-full h-full p-5 bg-gradient-to-br from-purple-900/40 to-[#0A0F16] border border-purple-500/20 rounded-2xl text-sm font-bold text-gray-400 hover:text-purple-400 hover:border-purple-500/40 hover:shadow-[0_8px_30px_rgba(147,51,234,0.15)] transition-all flex items-center justify-between overflow-hidden relative peer"
+                >
+                  <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex items-center gap-3 relative z-10 w-full justify-center">
+                     <span className="font-extrabold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">RANDOM (ALL)</span>
+                     <Zap className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-purple-400 absolute right-0" />
+                  </div>
+                </motion.button>
+                  <div className="absolute -top-3 -right-2 z-50">
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); setShowRandomAllInfo(!showRandomAllInfo); }}
+                    className="info-popup-trigger w-6 h-6 rounded-full bg-[#111827] border border-white/10 flex items-center justify-center text-[10px] font-black text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
+                  >
+                    !
+                    {showRandomAllInfo && (
+                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-[#0A0F16] border border-white/10 text-[11px] text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
+                        Practice a mix of questions from all available categories.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -912,7 +994,6 @@ export default function App() {
             <p className="text-blue-400 text-xs tracking-widest font-bold uppercase mb-8">
               For {showSubcategoriesFor}
             </p>
-            <InputToggle />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {SUB_OPS.map((op) => (
                 <CategoryBtn key={op.id} name={op.label} onClick={() => startSubcategory(op.id)} />
@@ -949,15 +1030,15 @@ export default function App() {
                     <div className="flex flex-col items-center justify-center gap-2 mb-4">
                       <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300">Number Range</h3>
                       <button 
-                        onClick={() => setShowManualInfo(!showManualInfo)}
-                        className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-300 transition-colors"
+                        onClick={() => setShowRangeInfo(!showRangeInfo)}
+                        className="info-popup-trigger flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-300 transition-colors"
                       >
                         <div className="w-4 h-4 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">i</div>
                         <span>Info</span>
                       </button>
                       
-                      {showManualInfo && (
-                        <div className="w-full p-3 bg-gray-800/50 border border-white/5 text-[11px] text-gray-400 rounded-lg text-center leading-relaxed mt-2">
+                      {showRangeInfo && (
+                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-white/5 text-[11px] text-gray-400 rounded-lg text-center leading-relaxed mt-2">
                           Define the start and end values for the numbers. Questions will be generated exclusively within this specified range.
                         </div>
                       )}
@@ -965,7 +1046,7 @@ export default function App() {
                     
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
+                        <label className="text-[11px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
                         <input 
                           type="number" 
                           value={practiceConfig.range.start === '' ? '' : (practiceConfig.range.start ?? '')}
@@ -978,7 +1059,7 @@ export default function App() {
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
+                        <label className="text-[11px] font-bold text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
                         <input 
                           type="number" 
                           value={practiceConfig.range.end === '' ? '' : (practiceConfig.range.end ?? '')}
@@ -1022,7 +1103,7 @@ export default function App() {
               <div className="mb-6">
                 <div className="bg-[#111827]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-2xl">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300 mb-4 text-center">Total Questions</h3>
-                  <div className="bg-black/40 border border-white/5 rounded-xl p-2 flex items-center">
+                  <div className="bg-[#111827] border border-white/10 rounded-2xl p-2 flex items-center mb-6 shadow-inner">
                     <input 
                       type="number" 
                       min="1" max="100"
@@ -1036,10 +1117,12 @@ export default function App() {
                         if (val > 100) val = 100;
                         setPracticeConfig({...practiceConfig, volume: val});
                       }}
-                      className="w-full bg-transparent text-2xl font-black text-white outline-none text-center p-3"
+                      className="w-full bg-transparent text-3xl font-black text-white outline-none text-center p-3"
                       placeholder="Enter volume (Max 100)"
                     />
                   </div>
+                  
+                  <InputToggle />
                   
                   <button 
                     disabled={!practiceConfig.volume}
@@ -1351,7 +1434,9 @@ export default function App() {
                   </div>
 
                   <div className="flex-1 space-y-4 mb-16 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 sticky top-0 bg-[#0A0F16] py-2 z-10">Detailed Analysis</h3>
+                    <div className="flex justify-between items-center mb-4 px-2">
+                      <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400">Detailed Analysis</h3>
+                    </div>
                     {derivedHistory.map((h, i) => (
                       <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-[#111827] border-emerald-500/30 border-l-4 border-l-emerald-500 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' : 'bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-[0_4px_20px_rgba(239,68,68,0.05)]'}`}>
                         <div className="flex flex-col">
