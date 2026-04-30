@@ -256,9 +256,9 @@ export default function App() {
   };
 
   const handleGlobalShare = async (scoreData?: { accuracy: number, score: number, total: number, speed?: string }) => {
-    let text = "Level up your calculation speeds with NumBoost Arena! 🤯 Create custom math challenges, practice specific ranges, and challenge your limits in an immersive test mode. Let's see if you can handle the Expert level!\"\n👉 Join the Arena: https://numboostarena.netlify.app/#";
+    let text = "Level up your calculation speeds with NumBoost Arena! 🤯 Create custom math challenges, practice specific ranges, and challenge your limits in an immersive test mode. Let's see if you can handle the Expert level!\"\n👉 Join the Arena: https://numboost.netlify.app/#";
     if (scoreData) {
-        text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboostarena.netlify.app/#`;
+        text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboost.netlify.app/#`;
     }
     if (navigator.share) {
         navigator.share({ text }).catch((err) => {
@@ -454,7 +454,7 @@ export default function App() {
           const addFooter = (document: jsPDF) => {
             document.setFontSize(9);
             document.setFont("helvetica", "italic");
-            document.text("This practice sheet created by Numboostarena.netlify.app", 105, 287, { align: "center" });
+            document.text("This practice sheet created by numboost.netlify.app", 105, 287, { align: "center" });
           };
         
         // Page 1: Title
@@ -915,11 +915,19 @@ export default function App() {
 
                 <div className="flex flex-col md:flex-row gap-3 mt-auto pt-8">
                   <button 
+                    disabled={Object.keys(customConfig).length === 0 || !customVolume || isGeneratingPDF}
+                    onClick={downloadCustomPDF}
+                    className="flex-1 bg-white/5 border border-white/10 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    {isGeneratingPDF ? 'Generating...' : <><Download className="w-4 h-4" /> Export PDF</>}
+                  </button>
+
+                  <button 
                     disabled={Object.keys(customConfig).length === 0 || !customVolume}
                     onClick={() => {
                       initGameState(Object.values(customConfig), customVolume, true);
                     }}
-                    className="w-full bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
+                    className="flex-[2] bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
                   >
                     Start Custom Arena
                   </button>
