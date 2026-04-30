@@ -85,7 +85,6 @@ export default function App() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const [gameMode, setGameMode] = useState<'mcq' | 'manual'>('manual');
   const [manualInput, setManualInput] = useState('');
@@ -293,50 +292,48 @@ export default function App() {
     setScreen('setup');
   };
 
-  const initGameState = async (categories: ActiveCategory[], totalQuestions: number, isTestMode: boolean) => {
-    setIsGenerating(true);
-    try {
-      const resp = await fetch("/api/generate-batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categories, totalQuestions })
-      });
-      if (!resp.ok) throw new Error("Failed to generate questions");
-      const data = await resp.json();
-      const questions = data.questions;
-
-      if (isTestMode && customUseTimer && screen === 'custom') {
-        let tm = (Number(customTimerHours) || 0) * 3600 + (Number(customTimerMinutes) || 0) * 60;
-        if (tm < 60) tm = 60;
-        if (tm > 10800) tm = 10800; // max 3 hours
-        setTimeRemaining(tm);
-      } else {
-        setTimeRemaining(null);
-      }
-
-      const state: GameState = {
-          categories,
-          isTestMode,
-          score: 0,
-          questionsAnswered: 0,
-          totalQuestions,
-          questions,
-          answers: {},
-          currentIndex: 0,
-          startTime: Date.now(),
-          endTime: null
-      };
-      setGameState(state);
-      setCurrentQuestion(state.questions[0].question);
-      setOptions(state.questions[0].options as any);
-      setManualInput('');
-      setScreen('game');
-    } catch (e) {
-      console.error(e);
-      alert("Failed to connect to the math engine. The backend might not be running.");
-    } finally {
-      setIsGenerating(false);
+  const initGameState = (categories: ActiveCategory[], totalQuestions: number, isTestMode: boolean) => {
+    const questions: { question: Question; options: (string | number)[] }[] = [];
+    for (let i = 0; i < totalQuestions; i++) {
+        const cat = categories[Math.floor(Math.random() * categories.length)];
+        let q: Question;
+        let attempts = 0;
+        do {
+            q = generateQuestion(cat.name, cat.difficulty, cat.customRange);
+            attempts++;
+        } while (attempts < 15 && questions.some(existing => existing.question.expression === q.expression));
+        
+        const decoys = generateSmartDecoys(q);
+        const options = shuffleArray([q.answer, ...decoys]);
+        questions.push({ question: q, options });
     }
+
+    if (isTestMode && customUseTimer && screen === 'custom') {
+      let tm = (Number(customTimerHours) || 0) * 3600 + (Number(customTimerMinutes) || 0) * 60;
+      if (tm < 60) tm = 60;
+      if (tm > 10800) tm = 10800; // max 3 hours
+      setTimeRemaining(tm);
+    } else {
+      setTimeRemaining(null);
+    }
+
+    const state: GameState = {
+        categories,
+        isTestMode,
+        score: 0,
+        questionsAnswered: 0,
+        totalQuestions,
+        questions,
+        answers: {},
+        currentIndex: 0,
+        startTime: Date.now(),
+        endTime: null
+    };
+    setGameState(state);
+    setCurrentQuestion(state.questions[0].question);
+    setOptions(state.questions[0].options as any);
+    setManualInput('');
+    setScreen('game');
   };
 
   const goToQuestion = (index: number, stateObj = gameState) => {
@@ -431,31 +428,26 @@ export default function App() {
     setCurrentQuestion(null);
   };
 
-  const downloadCustomPDF = async () => {
+  const downloadCustomPDF = () => {
     if (Object.keys(customConfig).length === 0 || !customVolume) return;
     setIsGeneratingPDF(true);
 
-    try {
-      const categories = Object.values(customConfig) as ActiveCategory[];
-      
-      const resp = await fetch("/api/generate-batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categories, totalQuestions: customVolume })
-      });
-      if (!resp.ok) throw new Error("Failed to generate PDF questions");
-      const data = await resp.json();
-      const finalQuestions: Question[] = data.questions.map((q: any) => q.question);
+    setTimeout(() => {
+      try {
+        const finalQuestions: Question[] = [];
+        const categories = Object.values(customConfig) as ActiveCategory[];
+        for (let i = 0; i < customVolume; i++) {
+          const activeCat = categories[Math.floor(Math.random() * categories.length)];
+          finalQuestions.push(generateQuestion(activeCat.name, activeCat.difficulty, activeCat.customRange));
+        }
 
-      setTimeout(() => {
-        try {
-          const doc = new jsPDF({ format: 'a4' });
+        const doc = new jsPDF({ format: 'a4' });
 
-          const addFooter = (document: jsPDF) => {
-            document.setFontSize(9);
-            document.setFont("helvetica", "italic");
-            document.text("This practice sheet created by numboost.netlify.app", 105, 287, { align: "center" });
-          };
+        const addFooter = (document: jsPDF) => {
+          document.setFontSize(9);
+          document.setFont("helvetica", "italic");
+          document.text("This practice sheet created by numboost.netlify.app", 105, 287, { align: "center" });
+        };
         
         // Page 1: Title
         doc.setFont("helvetica", "bold");
@@ -551,17 +543,12 @@ export default function App() {
         addFooter(doc);
 
         doc.save("NumBoost-Elite-Worksheet.pdf");
-        } catch (e) {
-          console.error("Failed to generate PDF", e);
-        } finally {
-          setIsGeneratingPDF(false);
-        }
-      }, 100);
-    } catch (e) {
-      console.error(e);
-      alert("Failed to connect to backend for PDF generation.");
-      setIsGeneratingPDF(false);
-    }
+      } catch (e) {
+        console.error("Failed to generate PDF", e);
+      } finally {
+        setIsGeneratingPDF(false);
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -651,6 +638,14 @@ export default function App() {
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     className="info-popup-content flex flex-col gap-2"
                   >
+                    <button 
+                      onClick={() => { handleDownloadApp(); setShowMenu(false); }}
+                      aria-label="Install app"
+                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                    >
+                      <Download className="w-5 h-5" />
+                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Install</span>
+                    </button>
                     <button 
                       onClick={() => { handleGlobalShare(); setShowMenu(false); }}
                       aria-label="Share"
