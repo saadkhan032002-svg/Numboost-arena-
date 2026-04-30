@@ -85,6 +85,7 @@ export default function App() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const [gameMode, setGameMode] = useState<'mcq' | 'manual'>('manual');
   const [manualInput, setManualInput] = useState('');
@@ -221,8 +222,8 @@ export default function App() {
   );
 
   const toggleCustomCategory = (cat: string) => {
-    // For custom arena, encode Decimals/Fractions as Mix by default, or let user select sub.
-    // For simplicity, we just save it as `${cat}-Mix` if it's Fractions/Decimals to leverage the engine.
+    // Encode Decimals/Fractions as Mix by default
+    // Saved as `${cat}-Mix` for engine compatibility
     const key = (cat === 'Decimals' || cat === 'Fractions') ? `${cat}-Mix` : cat;
     
     const newConf = { ...customConfig };
@@ -292,48 +293,50 @@ export default function App() {
     setScreen('setup');
   };
 
-  const initGameState = (categories: ActiveCategory[], totalQuestions: number, isTestMode: boolean) => {
-    const questions: { question: Question; options: (string | number)[] }[] = [];
-    for (let i = 0; i < totalQuestions; i++) {
-        const cat = categories[Math.floor(Math.random() * categories.length)];
-        let q: Question;
-        let attempts = 0;
-        do {
-            q = generateQuestion(cat.name, cat.difficulty, cat.customRange);
-            attempts++;
-        } while (attempts < 15 && questions.some(existing => existing.question.expression === q.expression));
-        
-        const decoys = generateSmartDecoys(q);
-        const options = shuffleArray([q.answer, ...decoys]);
-        questions.push({ question: q, options });
-    }
+  const initGameState = async (categories: ActiveCategory[], totalQuestions: number, isTestMode: boolean) => {
+    setIsGenerating(true);
+    try {
+      const resp = await fetch("/api/generate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories, totalQuestions })
+      });
+      if (!resp.ok) throw new Error("Failed to generate questions");
+      const data = await resp.json();
+      const questions = data.questions;
 
-    if (isTestMode && customUseTimer && screen === 'custom') {
-      let tm = (Number(customTimerHours) || 0) * 3600 + (Number(customTimerMinutes) || 0) * 60;
-      if (tm < 60) tm = 60;
-      if (tm > 10800) tm = 10800; // max 3 hours
-      setTimeRemaining(tm);
-    } else {
-      setTimeRemaining(null);
-    }
+      if (isTestMode && customUseTimer && screen === 'custom') {
+        let tm = (Number(customTimerHours) || 0) * 3600 + (Number(customTimerMinutes) || 0) * 60;
+        if (tm < 60) tm = 60;
+        if (tm > 10800) tm = 10800; // max 3 hours
+        setTimeRemaining(tm);
+      } else {
+        setTimeRemaining(null);
+      }
 
-    const state: GameState = {
-        categories,
-        isTestMode,
-        score: 0,
-        questionsAnswered: 0,
-        totalQuestions,
-        questions,
-        answers: {},
-        currentIndex: 0,
-        startTime: Date.now(),
-        endTime: null
-    };
-    setGameState(state);
-    setCurrentQuestion(state.questions[0].question);
-    setOptions(state.questions[0].options as any);
-    setManualInput('');
-    setScreen('game');
+      const state: GameState = {
+          categories,
+          isTestMode,
+          score: 0,
+          questionsAnswered: 0,
+          totalQuestions,
+          questions,
+          answers: {},
+          currentIndex: 0,
+          startTime: Date.now(),
+          endTime: null
+      };
+      setGameState(state);
+      setCurrentQuestion(state.questions[0].question);
+      setOptions(state.questions[0].options as any);
+      setManualInput('');
+      setScreen('game');
+    } catch (e) {
+      console.error(e);
+      alert("Failed to connect to the math engine. The backend might not be running.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const goToQuestion = (index: number, stateObj = gameState) => {
@@ -354,7 +357,7 @@ export default function App() {
         ...gameState,
         answers: { ...gameState.answers, [gameState.currentIndex]: String(answer).trim() }
       };
-      // Mark as answered if it wasn't already or wasn't skipped? Actually just update the dictionary.
+      // Update the dictionary structure with user's answer segment
       const answeredKeys = Object.values(nextState.answers).filter(val => val !== undefined && val !== '').length;
       nextState.questionsAnswered = answeredKeys;
       
@@ -400,7 +403,7 @@ export default function App() {
   const skipQuestion = () => {
     if (!gameState || isProcessing) return;
     
-    // Both Test & Practice can skip technically? The user said "practice mai previous aur skip ka option nhi daalna"
+    // Only Test Mode allows skipping.
     if (!gameState.isTestMode) return;
 
     const nextState: GameState = {
@@ -428,26 +431,31 @@ export default function App() {
     setCurrentQuestion(null);
   };
 
-  const downloadCustomPDF = () => {
+  const downloadCustomPDF = async () => {
     if (Object.keys(customConfig).length === 0 || !customVolume) return;
     setIsGeneratingPDF(true);
 
-    setTimeout(() => {
-      try {
-        const finalQuestions: Question[] = [];
-        const categories = Object.values(customConfig) as ActiveCategory[];
-        for (let i = 0; i < customVolume; i++) {
-          const activeCat = categories[Math.floor(Math.random() * categories.length)];
-          finalQuestions.push(generateQuestion(activeCat.name, activeCat.difficulty, activeCat.customRange));
-        }
+    try {
+      const categories = Object.values(customConfig) as ActiveCategory[];
+      
+      const resp = await fetch("/api/generate-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categories, totalQuestions: customVolume })
+      });
+      if (!resp.ok) throw new Error("Failed to generate PDF questions");
+      const data = await resp.json();
+      const finalQuestions: Question[] = data.questions.map((q: any) => q.question);
 
-        const doc = new jsPDF({ format: 'a4' });
+      setTimeout(() => {
+        try {
+          const doc = new jsPDF({ format: 'a4' });
 
-        const addFooter = (document: jsPDF) => {
-          document.setFontSize(9);
-          document.setFont("helvetica", "italic");
-          document.text("This practice sheet created by Numboostarena.netlify.app", 105, 287, { align: "center" });
-        };
+          const addFooter = (document: jsPDF) => {
+            document.setFontSize(9);
+            document.setFont("helvetica", "italic");
+            document.text("This practice sheet created by Numboostarena.netlify.app", 105, 287, { align: "center" });
+          };
         
         // Page 1: Title
         doc.setFont("helvetica", "bold");
@@ -543,12 +551,17 @@ export default function App() {
         addFooter(doc);
 
         doc.save("NumBoost-Elite-Worksheet.pdf");
-      } catch (e) {
-        console.error("Failed to generate PDF", e);
-      } finally {
-        setIsGeneratingPDF(false);
-      }
-    }, 100);
+        } catch (e) {
+          console.error("Failed to generate PDF", e);
+        } finally {
+          setIsGeneratingPDF(false);
+        }
+      }, 100);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to connect to backend for PDF generation.");
+      setIsGeneratingPDF(false);
+    }
   };
 
   useEffect(() => {
@@ -620,7 +633,7 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-5xl mx-auto px-5 md:px-8 lg:px-12 pt-[15vh] md:pt-16 min-h-[100dvh] flex flex-col md:flex-row relative items-start md:items-center justify-start md:justify-center gap-10 md:gap-12 pb-12"
+            className="w-full max-w-6xl mx-auto px-5 lg:px-12 py-12 md:py-0 min-h-[100dvh] flex flex-col md:flex-row relative items-center justify-center gap-10 lg:gap-16"
           >
             <div className="absolute top-6 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
               <button 
@@ -638,14 +651,6 @@ export default function App() {
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     className="info-popup-content flex flex-col gap-2"
                   >
-                    <button 
-                      onClick={() => { handleDownloadApp(); setShowMenu(false); }}
-                      aria-label="Install app"
-                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
-                    >
-                      <Download className="w-5 h-5" />
-                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Install</span>
-                    </button>
                     <button 
                       onClick={() => { handleGlobalShare(); setShowMenu(false); }}
                       aria-label="Share"
@@ -667,21 +672,21 @@ export default function App() {
               </AnimatePresence>
             </div>
             
-            <header className="md:w-1/2 flex flex-col md:pr-12 md:pb-24">
+            <header className="w-full md:w-1/2 flex flex-col md:pr-10 lg:pr-16 text-center md:text-left mt-[10vh] md:mt-0">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="flex items-center gap-2 mb-6"
+                className="flex items-center justify-center md:justify-start gap-3 mb-6"
               >
                 <Zap className="w-6 h-6 text-blue-500 fill-blue-500" />
-                <span className="text-xs font-bold tracking-[0.2em] uppercase text-blue-300">Arena Engine</span>
+                <span className="text-sm font-bold tracking-[0.2em] uppercase text-blue-300">Arena Engine</span>
               </motion.div>
               <motion.h1 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-[13.5vw] sm:text-6xl md:text-8xl font-black tracking-tight leading-[0.9] mb-4 md:mb-6 text-white"
+                className="text-[12vw] sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-6 text-white"
               >
                 NUMBOOST<br />ARENA
               </motion.h1>
@@ -689,13 +694,13 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-gray-400 text-sm md:text-base leading-relaxed max-w-[320px]"
+                className="text-gray-400 text-base lg:text-lg leading-relaxed max-w-sm mx-auto md:mx-0"
               >
                 Master speed and accuracy with adaptive challenges. Designed for flow state.
               </motion.p>
             </header>
 
-            <div className="w-full md:w-1/2 flex flex-col gap-4">
+            <div className="w-full md:w-1/2 flex flex-col gap-5">
               <MenuCard 
                 icon={<Target className="w-6 h-6" />}
                 title="Practice Mode"
@@ -910,19 +915,11 @@ export default function App() {
 
                 <div className="flex flex-col md:flex-row gap-3 mt-auto pt-8">
                   <button 
-                    disabled={Object.keys(customConfig).length === 0 || !customVolume || isGeneratingPDF}
-                    onClick={downloadCustomPDF}
-                    className="flex-1 bg-white/5 border border-white/10 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
-                  >
-                    {isGeneratingPDF ? 'Generating...' : <><Download className="w-4 h-4" /> Export PDF</>}
-                  </button>
-
-                  <button 
                     disabled={Object.keys(customConfig).length === 0 || !customVolume}
                     onClick={() => {
                       initGameState(Object.values(customConfig), customVolume, true);
                     }}
-                    className="flex-[2] bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
+                    className="w-full bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
                   >
                     Start Custom Arena
                   </button>
