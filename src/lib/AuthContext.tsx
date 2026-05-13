@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrCreateProfile = async (firebaseUser: User, isGuestMatch?: boolean) => {
+  const fetchOrCreateProfile = async (firebaseUser: User, isGuestMatch?: boolean, customName?: string) => {
     const currentWeekId = getCurrentWeekId();
     const isGuest = isGuestMatch !== undefined ? isGuestMatch : firebaseUser.isAnonymous;
     
@@ -58,9 +58,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         }
         setProfile(data);
       } else {
+        // Enforce unique displayName only if user requests a specific one or fallback
+        const requestedName = customName || firebaseUser.displayName || (isGuest ? 'Guest User' : 'Player');
+        // We query strictly since displayName uniqueness is requested
+        let finalName = requestedName;
+        if (!isGuest && requestedName !== 'Guest User' && requestedName !== 'Player') {
+          const { collection, query, where, getDocs } = await import('firebase/firestore');
+          const q = query(collection(db, 'users'), where('displayName', '==', requestedName));
+          const colSnap = await getDocs(q);
+          if (!colSnap.empty) {
+             finalName = `${requestedName}_${Math.floor(Math.random() * 10000)}`;
+          }
+        }
+
         const newProfile: UserProfile = {
           uid: firebaseUser.uid,
-          displayName: firebaseUser.displayName || (isGuest ? 'Guest User' : 'Player'),
+          displayName: finalName,
           photoURL: firebaseUser.photoURL || '',
           isGuest,
           currentWeekId,
@@ -72,6 +85,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       }
     } catch (e: any) {
       console.error('fetchOrCreateProfile error:', e.message);
+      throw e;
     }
   };
 

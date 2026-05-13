@@ -750,21 +750,14 @@ export default function App() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        className="absolute top-6 left-5 md:top-8 md:left-12 z-[100] flex items-center gap-1 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-1 rounded-2xl backdrop-blur-md shadow-sm"
+        className="absolute top-6 left-5 md:top-8 md:left-12 z-[100] flex items-center"
       >
         <button
-          onClick={() => setTheme('light')}
-          className={`p-2 rounded-xl transition-all ${theme !== 'dark' ? 'bg-slate-100 dark:bg-white/5 shadow-sm text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-700 dark:hover:text-gray-300'}`}
-          aria-label="Light mode"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-3 md:p-4 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95"
+          aria-label="Toggle Theme"
         >
-          <Sun className="w-4 h-4 md:w-5 md:h-5" />
-        </button>
-        <button
-          onClick={() => setTheme('dark')}
-          className={`p-2 rounded-xl transition-all ${theme === 'dark' ? 'bg-slate-100 dark:bg-white/5 shadow-sm text-blue-500 font-bold' : 'text-slate-400 hover:text-slate-700 dark:hover:text-gray-300'}`}
-          aria-label="Dark mode"
-        >
-          <Moon className="w-4 h-4 md:w-5 md:h-5" />
+          {theme === 'dark' ? <Sun className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" /> : <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />}
         </button>
       </motion.div>
       )}
@@ -1046,7 +1039,7 @@ export default function App() {
                         key={pillar.id}
                         onClick={() => toggleCustomCategory(pillar.id)}
                         className={`p-3 rounded-xl border text-[13px] md:text-sm font-bold transition-all ${
-                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-gradient-to-r bg-[#FFD13B] dark:bg-gradient-to-r dark:from-blue-500/20 dark:to-emerald-500/20 text-slate-900 font-bold dark:text-white border-blue-400 dark:border-blue-500/50 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-white/10'
+                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-[#FFD13B] dark:bg-blue-600 text-slate-900 font-bold dark:text-white border-blue-400 dark:border-blue-400 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-white/10'
                         }`}
                       >
                         {pillar.label} {customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] && '✓'}
@@ -1060,7 +1053,7 @@ export default function App() {
                         }
                       }}
                       className={`col-span-2 md:col-span-3 p-4 rounded-xl border text-[13px] md:text-base uppercase tracking-widest font-black transition-all relative shadow-sm ${
-                        customConfig['Random'] ? 'bg-gradient-to-r bg-slate-900 dark:bg-gradient-to-r dark:from-purple-600 dark:to-indigo-600 text-amber-400 font-bold dark:text-white border-slate-900 dark:border-purple-500/50 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-purple-400 border-purple-500/20 hover:border-purple-500/40 hover:bg-slate-100 dark:bg-white/10'
+                        customConfig['Random'] ? 'bg-purple-600 text-white border-purple-500 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-purple-600 dark:text-purple-400 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-50 dark:hover:bg-purple-500/10'
                       }`}
                     >
                       <div className="flex w-full items-center justify-center gap-2">
