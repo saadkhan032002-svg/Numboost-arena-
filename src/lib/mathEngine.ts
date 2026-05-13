@@ -8,6 +8,7 @@ export interface Question {
   options?: (number | string)[];
   type: string;
   category: string;
+  points?: number;
 }
 
 const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
@@ -258,7 +259,14 @@ export const generateQuestion = (
       answer = 2;
   }
 
-  return { id, expression, answer, type: category, category };
+  let points = 0;
+  if (category.toLowerCase().includes('table') || category.toLowerCase().includes('root') || category.toLowerCase().includes('square') || category.toLowerCase().includes('cube')) {
+    points = 2;
+  } else {
+    points = { Beginner: 1, Intermediate: 2, Advanced: 3, Expert: 4 }[difficulty || 'Beginner'] || 1;
+  }
+
+  return { id, expression, answer, type: category, category, points };
 };
 
 export const generateSmartDecoys = (q: Question): (number | string)[] => {

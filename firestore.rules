@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Denial
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    function isValidUserConfig(data) {
+      return data.keys().hasAll(['displayName', 'currentWeekId', 'weeklyMPoints', 'totalMPoints']) &&
+             data.displayName is string && data.displayName.size() <= 500 &&
+             data.currentWeekId is string && data.currentWeekId.size() <= 100 &&
+             data.weeklyMPoints is number &&
+             data.totalMPoints is number &&
+             (data.keys().hasAny(['photoURL']) ? (data.photoURL is string && data.photoURL.size() <= 5000000) : true) &&
+             (data.keys().hasAny(['isGuest']) ? data.isGuest is bool : true) &&
+             (data.keys().hasAny(['uid']) ? data.uid is string : true);
+    }
+
+    match /users/{userId} {
+      allow get: if true; 
+      
+      // Allow list for the leaderboard, limiting query
+      allow list: if true; 
+
+      allow create: if isValidId(userId) && isOwner(userId) &&
+                       isValidUserConfig(incoming());
+                       
+      allow update: if isValidId(userId) && isOwner(userId) &&
+                       isValidUserConfig(incoming()) &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'currentWeekId', 'weeklyMPoints', 'totalMPoints', 'uid', 'isGuest'])
+                       );
+                       
+      allow delete: if isOwner(userId);
+    }
+  }
+}

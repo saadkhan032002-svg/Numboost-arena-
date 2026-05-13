@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and leaderboard stats",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "Display name of the user" },
+        "photoURL": { "type": "string", "description": "Base64 encoded image or URL" },
+        "currentWeekId": { "type": "string", "description": "Identifier for the current week e.g. 2026-W20" },
+        "weeklyMPoints": { "type": "number", "description": "Points earned this week" },
+        "totalMPoints": { "type": "number", "description": "Lifetime points" },
+        "isGuest": { "type": "boolean", "description": "Is this a guest user?" }
+      },
+      "required": ["displayName", "currentWeekId", "weeklyMPoints", "totalMPoints"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles and stats"
+    }
+  }
+}

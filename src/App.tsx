@@ -21,13 +21,44 @@ import {
   Info,
   Download,
   MoreVertical,
-  Mail
+  Mail,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  Camera,
+  Sun,
+  Moon,
+  Laptop,
+  RefreshCw
 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { db } from './lib/firebase';
 import { generateQuestion, Difficulty, Question, shuffleArray, generateSmartDecoys } from './lib/mathEngine';
 import { jsPDF } from 'jspdf';
 import { playClick, playCorrect, playWrong, playNumpad } from './lib/audioEngine';
+import { useAuth, getCurrentWeekId } from './lib/AuthContext';
 
-type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'results' | 'custom' | 'about';
+type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'results' | 'custom' | 'about' | 'profile' | 'leaderboard';
+
+const MPointBadge = ({ points, size = 'md', className = '' }: { points: number, size?: 'sm' | 'md' | 'lg', className?: string }) => {
+  const sizeClasses = {
+    sm: 'w-5 h-5 text-[10px]',
+    md: 'w-6 h-6 text-xs',
+    lg: 'w-8 h-8 text-sm'
+  };
+  return (
+    <div className={`flex items-center gap-2 group ${className}`} title={`${points} M-Points`}>
+      <div className={`relative ${sizeClasses[size]} rounded-full bg-amber-400 dark:bg-amber-500 flex items-center justify-center text-amber-950 font-black shadow-sm border border-amber-300 dark:border-amber-400 overflow-hidden shrink-0 transform transition-transform group-hover:scale-110 group-hover:rotate-12`}>
+         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/80 to-transparent -translate-x-full group-hover:translate-x-full duration-[1.5s] ease-in-out transition-transform" />
+         <span className="drop-shadow-sm">M</span>
+      </div>
+      <span className="font-extrabold text-slate-900 dark:text-gray-100 tracking-tight drop-shadow-sm group-hover:text-amber-500 transition-colors">
+        {points % 1 !== 0 ? points.toFixed(2) : points}
+      </span>
+    </div>
+  );
+};
 
 export interface ActiveCategory {
   name: string;
@@ -39,6 +70,7 @@ interface GameState {
   categories: ActiveCategory[];
   isTestMode: boolean;
   score: number;
+  sessionPoints: number;
   questionsAnswered: number;
   totalQuestions: number;
   questions: { question: Question; options: (string | number)[] }[];
@@ -77,13 +109,38 @@ const SUB_OPS = [
 ];
 
 export default function App() {
+  const { user, profile, logout, addPoints, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, updateProfileData, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>('home');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [options, setOptions] = useState<(number | string)[]>([]);
   const [lastResult, setLastResult] = useState<{ isCorrect: boolean; show: boolean }>({ isCorrect: false, show: false });
+  const [earnedMPoints, setEarnedMPoints] = useState<number>(0);
 
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
+    return (localStorage.getItem('theme') as any) || 'system';
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+
+  const [emailMode, setEmailMode] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [passInput, setPassInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  const [editProfileName, setEditProfileName] = useState('');
+  const [editProfileImage, setEditProfileImage] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (screen === 'profile' && profile) {
+      setEditProfileName(profile.displayName || '');
+      setEditProfileImage(profile.photoURL || null);
+    }
+  }, [screen, profile]);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const [gameMode, setGameMode] = useState<'mcq' | 'manual'>('manual');
@@ -94,8 +151,50 @@ export default function App() {
   const [showRandomAllInfo, setShowRandomAllInfo] = useState(false);
   const [showCustomRandomInfo, setShowCustomRandomInfo] = useState(false);
   const [showRangeInfo, setShowRangeInfo] = useState(false);
+  const [showLeaderboardInfo, setShowLeaderboardInfo] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [isFetchingLB, setIsFetchingLB] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    if (!loading) {
+      const hasSeen = localStorage.getItem('hasSeenAuthModal');
+      if (!user && !hasCheckedAuth && !hasSeen) {
+        setShowAuthModal(true);
+        localStorage.setItem('hasSeenAuthModal', 'true');
+      }
+      setHasCheckedAuth(true);
+    }
+  }, [user, loading, hasCheckedAuth]);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const applyTheme = () => {
+      if (theme === 'system') {
+         if (mediaQuery.matches) {
+           root.classList.add('dark');
+         } else {
+           root.classList.remove('dark');
+         }
+      } else if (theme === 'dark') {
+         root.classList.add('dark');
+      } else {
+         root.classList.remove('dark');
+      }
+    };
+    
+    applyTheme();
+    localStorage.setItem('theme', theme);
+    
+    const listener = () => {
+       if (theme === 'system') applyTheme();
+    };
+    mediaQuery.addEventListener('change', listener);
+    return () => mediaQuery.removeEventListener('change', listener);
+  }, [theme]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -107,6 +206,30 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (screen === 'leaderboard') {
+       const fetchLB = async () => {
+         setIsFetchingLB(true);
+         try {
+           const currentWeekId = getCurrentWeekId();
+           const q = query(collection(db, 'users'), orderBy('weeklyMPoints', 'desc'), limit(100));
+           const snap = await getDocs(q);
+           let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+           data = data.filter((u: any) => !u.isGuest).map((u: any) => ({
+             ...u,
+             effectivePoints: u.currentWeekId === currentWeekId ? (u.weeklyMPoints || 0) : 0
+           })).sort((a: any, b: any) => b.effectivePoints - a.effectivePoints);
+           setLeaderboard(data);
+         } catch(e: any) {
+           console.error('fetchLB error:', e.message);
+         } finally {
+           setIsFetchingLB(false);
+         }
+       };
+       fetchLB();
+    }
+  }, [screen]);
+
+  useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       
@@ -116,6 +239,7 @@ export default function App() {
         setShowRandomAllInfo(false);
         setShowCustomRandomInfo(false);
         setShowRangeInfo(false);
+        setShowLeaderboardInfo(false);
       }
 
       if (target.tagName.toLowerCase() === 'button' || target.closest('button') || target.tagName.toLowerCase() === 'a' || target.closest('a')) {
@@ -168,20 +292,20 @@ export default function App() {
   }, [screen, timeRemaining]);
 
   const InputToggle = () => (
-    <div className="bg-[#111827]/80 backdrop-blur-md border border-white/5 rounded-2xl mb-6 flex flex-row items-stretch shadow-xl w-full max-w-sm mx-auto">
-      <div className="w-[45%] flex flex-col justify-center p-3 border-r border-white/5">
+    <div className="bg-white dark:bg-[#111827]/80 backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-2xl mb-6 flex flex-row items-stretch shadow-xl w-full max-w-sm mx-auto">
+      <div className="w-[45%] flex flex-col justify-center p-3 border-r border-slate-200 dark:border-white/5">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-blue-500/10 flex flex-shrink-0 items-center justify-center text-blue-400">
             <Target className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-200 leading-tight">Input<br/>Mode</h3>
-            <p className="text-[8px] uppercase tracking-wider text-gray-500 mt-0.5">How to answer</p>
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 dark:text-gray-200 leading-tight">Input<br/>Mode</h3>
+            <p className="text-[8px] uppercase tracking-wider text-slate-500 dark:text-gray-500 mt-0.5">How to answer</p>
           </div>
         </div>
       </div>
       
-      <div className="w-[55%] bg-black/40 relative flex flex-col rounded-r-2xl overflow-hidden info-popup-trigger">
+      <div className="w-[55%] bg-black/5 dark:bg-black/40 relative flex flex-col rounded-r-2xl overflow-hidden info-popup-trigger">
         <motion.div
            className="absolute left-0 right-0 h-[50%] z-0"
            initial={false}
@@ -194,13 +318,13 @@ export default function App() {
         
         <button 
           onClick={() => setGameMode('mcq')}
-          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-white/5 ${gameMode === 'mcq' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-slate-200 dark:border-white/5 ${gameMode === 'mcq' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
         >
           Options
         </button>
         <button 
           onClick={() => setGameMode('manual')}
-          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
         >
           Manual 
           <div 
@@ -212,7 +336,7 @@ export default function App() {
         </button>
         
         {showManualInfo && (
-          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-[#0A0F16] text-[10px] text-gray-300 p-3 rounded-xl border border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
+          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-white dark:bg-[#0A0F16] text-[10px] text-slate-700 dark:text-gray-300 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
             Type exact answers manually using keyboard. Perfect for rigorous training.
           </div>
         )}
@@ -321,6 +445,7 @@ export default function App() {
         categories,
         isTestMode,
         score: 0,
+        sessionPoints: 0,
         questionsAnswered: 0,
         totalQuestions,
         questions,
@@ -386,15 +511,36 @@ export default function App() {
       setTimeout(() => {
         setLastResult({ ...lastResult, show: false });
         if (nextState.currentIndex + 1 >= nextState.totalQuestions) {
-          setGameState({ ...nextState, endTime: Date.now() });
-          setScreen('results');
-          setIsProcessing(false);
+          triggerEndGame(nextState);
         } else {
           goToQuestion(nextState.currentIndex + 1, nextState);
           setIsProcessing(false);
         }
       }, 600);
     }
+  };
+
+  const triggerEndGame = async (finalState: GameState) => {
+    finalState.endTime = Date.now();
+    let computedPoints = 0;
+    finalState.questions.forEach((q, i) => {
+       const userAns = finalState.answers[i];
+       const isCorrect = userAns !== undefined && userAns !== 'skipped' && String(userAns).trim() === String(q.question.answer).trim();
+       if (isCorrect) {
+          computedPoints += (q.question.points || 1);
+       }
+    });
+
+    finalState.sessionPoints = computedPoints;
+    setGameState(finalState);
+    if (computedPoints > 0 && profile && !profile.isGuest) {
+       const res = await addPoints(computedPoints);
+       setEarnedMPoints(res.mPointsEarned);
+    } else {
+       setEarnedMPoints(computedPoints > 0 ? (computedPoints / 100) : 0);
+    }
+    setScreen('results');
+    setIsProcessing(false);
   };
 
   const skipQuestion = () => {
@@ -418,8 +564,7 @@ export default function App() {
 
   const submitTest = () => {
     if (!gameState) return;
-    setGameState({ ...gameState, endTime: Date.now() });
-    setScreen('results');
+    triggerEndGame({ ...gameState });
   };
 
   const resetGame = () => {
@@ -593,19 +738,170 @@ export default function App() {
   }, [screen, isProcessing, options, gameMode, showSubcategoriesFor, manualInput, currentQuestion]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#0F1626] text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#0F1626] text-slate-900 dark:text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
       {/* Immersive Background Blur Elements - Global */}
       <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
-      <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
+      <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-#FFD13B/10 dark:bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
+
+      {/* Theme Toggle - Top Left */}
+      <AnimatePresence>
+      {screen === 'home' && (
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className="absolute top-6 left-5 md:top-8 md:left-12 z-[100] flex items-center gap-1 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-1 rounded-2xl backdrop-blur-md shadow-sm"
+      >
+        <button
+          onClick={() => setTheme('light')}
+          className={`p-2 rounded-xl transition-all ${theme !== 'dark' ? 'bg-slate-100 dark:bg-white/5 shadow-sm text-blue-600 font-bold' : 'text-slate-400 hover:text-slate-700 dark:hover:text-gray-300'}`}
+          aria-label="Light mode"
+        >
+          <Sun className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
+        <button
+          onClick={() => setTheme('dark')}
+          className={`p-2 rounded-xl transition-all ${theme === 'dark' ? 'bg-slate-100 dark:bg-white/5 shadow-sm text-blue-500 font-bold' : 'text-slate-400 hover:text-slate-700 dark:hover:text-gray-300'}`}
+          aria-label="Dark mode"
+        >
+          <Moon className="w-4 h-4 md:w-5 md:h-5" />
+        </button>
+      </motion.div>
+      )}
+      </AnimatePresence>
+
+      {/* Auth Modal Overlay */}
+      <AnimatePresence>
+        {showAuthModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/50 dark:bg-black/50 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setShowAuthModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors"
+                aria-label="Close auth modal"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+              
+              <div className="text-center mb-8 mt-2">
+                <div className="w-20 h-20 bg-gradient-to-tr from-blue-500 to-emerald-400 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20 mb-6">
+                  <Zap className="w-10 h-10 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome!</h2>
+                <p className="text-sm text-slate-600 dark:text-gray-400">Sign in to track progress and climb the leaderboard or play as a guest.</p>
+              </div>
+
+              {!emailMode ? (
+                <div className="space-y-4">
+                  <button
+                    onClick={async () => {
+                      await signInWithGoogle();
+                      setShowAuthModal(false);
+                    }}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-white rounded-2xl font-bold transition-all border border-slate-900/10 dark:border-white/5 shadow-sm active:scale-95"
+                  >
+                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#4CAF50" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBC02D" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#E53935" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Continue with Google
+                  </button>
+                  <button
+                    onClick={() => setEmailMode(true)}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-white rounded-2xl font-bold transition-all border border-slate-900/10 dark:border-white/5 shadow-sm active:scale-95"
+                  >
+                    Continue with Email
+                  </button>
+                  <div className="flex items-center gap-4 py-2 opacity-50">
+                    <div className="h-[1px] flex-1 bg-slate-900 border-t border-slate-200 dark:border-white/10" />
+                    <span className="text-xs text-slate-500 font-bold tracking-widest uppercase">or</span>
+                    <div className="h-[1px] flex-1 bg-slate-900 border-t border-slate-200 dark:border-white/10" />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await signInAsGuest();
+                      setShowAuthModal(false);
+                    }}
+                    className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-gray-100 rounded-2xl font-bold transition-all shadow-md active:scale-95"
+                  >
+                    Play as Guest
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4 text-left w-full">
+                  {authError && <p className="text-red-500 text-[13px] text-center font-bold">{authError}</p>}
+                  {isSignUp && (
+                    <input 
+                      type="text" 
+                      placeholder="Display Name" 
+                      value={nameInput} 
+                      onChange={(e) => setNameInput(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all font-bold"
+                    />
+                  )}
+                  <input 
+                    type="email" 
+                    placeholder="Email Address" 
+                    value={emailInput} 
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all font-bold"
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="Password" 
+                    value={passInput} 
+                    onChange={(e) => setPassInput(e.target.value)}
+                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all font-bold"
+                  />
+                  <button
+                    onClick={async () => {
+                      setAuthError('');
+                      try {
+                        if (isSignUp) {
+                          await signUpWithEmail(emailInput, passInput, nameInput);
+                        } else {
+                          await signInWithEmail(emailInput, passInput);
+                        }
+                        setShowAuthModal(false);
+                      } catch (err) {
+                        setAuthError(err.message);
+                      }
+                    }}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95"
+                  >
+                    {isSignUp ? 'Sign Up' : 'Sign In'}
+                  </button>
+                  <div className="pt-2 flex justify-between items-center">
+                    <button onClick={() => setEmailMode(false)} className="text-slate-500 dark:text-gray-400 text-sm hover:text-slate-900 dark:hover:text-white font-bold transition-colors">← Back</button>
+                    <button onClick={() => setIsSignUp(!isSignUp)} className="text-blue-500 text-sm font-bold hover:text-blue-400 transition-colors">
+                      {isSignUp ? 'Already have an account?' : 'Create an account'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {toastMessage && (
           <motion.div 
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: 50, scale: 0.95 }}
             role="status"
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#111827] border border-emerald-500/30 text-white px-5 py-4 rounded-2xl text-sm font-medium shadow-[0_10px_30px_rgba(16,185,129,0.15)] z-[100] flex items-start gap-4 backdrop-blur-xl"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white dark:bg-[#111827] border border-emerald-500/30 text-slate-900 dark:text-white px-5 py-4 rounded-2xl text-sm font-medium shadow-sm z-[100] flex items-start gap-4 backdrop-blur-xl"
           >
             <Info className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{toastMessage}</span>
@@ -618,15 +914,14 @@ export default function App() {
           <motion.div 
             key="home"
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -20 }}
             className="w-full max-w-6xl mx-auto px-5 lg:px-12 py-12 md:py-0 min-h-[100dvh] flex flex-col md:flex-row relative items-center justify-center gap-10 lg:gap-16"
           >
             <div className="absolute top-6 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
               <button 
                 onClick={() => setShowMenu(!showMenu)}
                 aria-label="Open menu"
-                className="info-popup-trigger bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
+                className="info-popup-trigger bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
@@ -634,14 +929,13 @@ export default function App() {
                 {showMenu && (
                   <motion.div 
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     className="info-popup-content flex flex-col gap-2"
                   >
                     <button 
                       onClick={() => { handleDownloadApp(); setShowMenu(false); }}
                       aria-label="Install app"
-                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
                     >
                       <Download className="w-5 h-5" />
                       <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Install</span>
@@ -649,7 +943,7 @@ export default function App() {
                     <button 
                       onClick={() => { handleGlobalShare(); setShowMenu(false); }}
                       aria-label="Share"
-                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
                     >
                       <Share2 className="w-5 h-5" />
                       <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Share</span>
@@ -657,10 +951,26 @@ export default function App() {
                     <button 
                       onClick={() => { setScreen('about'); setShowMenu(false); }}
                       aria-label="About"
-                      className="bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-3 rounded-xl text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
                     >
                       <Info className="w-5 h-5" />
                       <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">About</span>
+                    </button>
+                    <button 
+                      onClick={() => { setScreen('leaderboard'); setShowMenu(false); }}
+                      aria-label="Leaderboard"
+                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                    >
+                      <Trophy className="w-5 h-5" />
+                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Leaderboard</span>
+                    </button>
+                    <button 
+                      onClick={() => { setScreen('profile'); setShowMenu(false); }}
+                      aria-label="Profile"
+                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
+                    >
+                      <UserIcon className="w-5 h-5" />
+                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Profile</span>
                     </button>
                   </motion.div>
                 )}
@@ -681,7 +991,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-[12vw] sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-6 text-white"
+                className="text-[12vw] sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-6 text-slate-900 dark:text-white"
               >
                 NUMBOOST<br />ARENA
               </motion.h1>
@@ -689,7 +999,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-gray-400 text-base lg:text-lg leading-relaxed max-w-sm mx-auto md:mx-0"
+                className="text-slate-600 dark:text-gray-400 text-base lg:text-lg leading-relaxed max-w-sm mx-auto md:mx-0"
               >
                 Master speed and accuracy with adaptive challenges. Designed for flow state.
               </motion.p>
@@ -718,11 +1028,10 @@ export default function App() {
           <motion.div 
             key="custom"
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -20 }}
             className="w-full max-w-4xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Custom<br />Challenge.</h2>
@@ -737,7 +1046,7 @@ export default function App() {
                         key={pillar.id}
                         onClick={() => toggleCustomCategory(pillar.id)}
                         className={`p-3 rounded-xl border text-[13px] md:text-sm font-bold transition-all ${
-                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white border-blue-500/50 shadow-lg' : 'bg-white/5 text-gray-400 border-white/5 hover:border-white/20 hover:bg-white/10'
+                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-gradient-to-r bg-[#FFD13B] dark:bg-gradient-to-r dark:from-blue-500/20 dark:to-emerald-500/20 text-slate-900 font-bold dark:text-white border-blue-400 dark:border-blue-500/50 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-white/10'
                         }`}
                       >
                         {pillar.label} {customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] && '✓'}
@@ -750,8 +1059,8 @@ export default function App() {
                           setShowCustomRandomInfo(false);
                         }
                       }}
-                      className={`col-span-2 md:col-span-3 p-4 rounded-xl border text-[13px] md:text-base uppercase tracking-widest font-black transition-all relative shadow-[0_0_15px_rgba(147,51,234,0.1)] ${
-                        customConfig['Random'] ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-500/50 shadow-lg' : 'bg-white/5 text-purple-400 border-purple-500/20 hover:border-purple-500/40 hover:bg-white/10'
+                      className={`col-span-2 md:col-span-3 p-4 rounded-xl border text-[13px] md:text-base uppercase tracking-widest font-black transition-all relative shadow-sm ${
+                        customConfig['Random'] ? 'bg-gradient-to-r bg-slate-900 dark:bg-gradient-to-r dark:from-purple-600 dark:to-indigo-600 text-amber-400 font-bold dark:text-white border-slate-900 dark:border-purple-500/50 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-purple-400 border-purple-500/20 hover:border-purple-500/40 hover:bg-slate-100 dark:bg-white/10'
                       }`}
                     >
                       <div className="flex w-full items-center justify-center gap-2">
@@ -764,7 +1073,7 @@ export default function App() {
                       >
                         !
                         {showCustomRandomInfo && (
-                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-[#0A0F16] border border-white/10 text-[10px] font-medium text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
+                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-white dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[10px] font-medium text-slate-700 dark:text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
                             Includes questions from every arithmetic category.
                           </div>
                         )}
@@ -775,9 +1084,9 @@ export default function App() {
 
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2 mt-2">3. Test Timer</h3>
-                  <div className="bg-[#111827] border border-white/10 rounded-xl p-4">
+                  <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-xl p-4">
                     <label className="flex items-center justify-between cursor-pointer mb-4">
-                      <span className="text-sm font-bold text-gray-300">Enable Time Limit</span>
+                      <span className="text-sm font-bold text-slate-700 dark:text-gray-300">Enable Time Limit</span>
                       <div className="relative inline-flex items-center cursor-pointer">
                         <input 
                           type="checkbox" 
@@ -785,14 +1094,14 @@ export default function App() {
                           onChange={(e) => setCustomUseTimer(e.target.checked)}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 hover:bg-white/20"></div>
+                        <div className="w-11 h-6 bg-slate-100 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 hover:bg-slate-200 dark:bg-white/20"></div>
                       </div>
                     </label>
                     
                     {customUseTimer && (
                       <div className="flex gap-4">
                         <div className="flex-1">
-                          <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">Hours</label>
+                          <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Hours</label>
                           <input 
                             type="number" 
                             min="0" max="3"
@@ -803,11 +1112,11 @@ export default function App() {
                                if (val > 3) val = 3;
                                setCustomTimerHours(val || '');
                             }}
-                            className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
+                            className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">Minutes</label>
+                          <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Minutes</label>
                           <input 
                             type="number" 
                             min="0" max="59"
@@ -818,7 +1127,7 @@ export default function App() {
                                if (val > 59) val = 59;
                                setCustomTimerMinutes(val || '');
                             }}
-                            className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
+                            className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
                           />
                         </div>
                       </div>
@@ -835,14 +1144,14 @@ export default function App() {
                       {Object.values(customConfig).map((config: ActiveCategory) => {
                         const isRange = ['Tables', 'Squares', 'Cubes', 'Roots'].includes(config.name);
                         return (
-                          <div key={config.name} className="p-4 bg-[#111827] border border-white/10 rounded-xl">
-                            <div className="font-bold text-white mb-3 text-sm">{getCatLabel(config.name)}</div>
+                          <div key={config.name} className="p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-xl">
+                            <div className="font-bold text-slate-900 dark:text-white mb-3 text-sm">{getCatLabel(config.name)}</div>
                             {isRange ? (
                               <div className="flex gap-4">
                                 <div className="flex-1">
-                                  <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">Start</label>
+                                  <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Start</label>
                                   <input type="number" 
-                                    className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
+                                    className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
                                     value={config.customRange?.start === '' ? '' : (config.customRange?.start ?? '')}
                                     onChange={e => {
                                       const val = parseInt(e.target.value);
@@ -851,9 +1160,9 @@ export default function App() {
                                   />
                                 </div>
                                 <div className="flex-1">
-                                  <label className="text-[11px] uppercase font-bold text-gray-500 mb-1 block">End</label>
+                                  <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">End</label>
                                   <input type="number" 
-                                    className="w-full bg-black/40 border border-white/5 rounded-lg p-2 text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
+                                    className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
                                     value={config.customRange?.end === '' ? '' : (config.customRange?.end ?? '')}
                                     onChange={e => {
                                       const val = parseInt(e.target.value);
@@ -869,7 +1178,7 @@ export default function App() {
                                     key={diff}
                                     onClick={() => updateCustomCategory(config.name, { difficulty: diff })}
                                     className={`flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-widest transition-all ${
-                                        config.difficulty === diff ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-inner' : 'bg-black/30 text-gray-500 border-white/5 hover:border-white/20'
+                                        config.difficulty === diff ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-inner' : 'bg-black/5 dark:bg-black/30 text-slate-500 dark:text-gray-500 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:border-white/20'
                                     }`}
                                   >
                                     {diffEmojis[diff]}
@@ -883,14 +1192,14 @@ export default function App() {
                     </div>
                   </section>
                 ) : (
-                  <div className="flex-1 flex items-center justify-center border-2 border-dashed border-white/10 rounded-2xl p-8 text-center text-gray-500 text-sm">
+                  <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-8 text-center text-slate-500 dark:text-gray-500 text-sm">
                     Select pillars to configure custom parameters.
                   </div>
                 )}
                 
                 <div className="mt-4">
                   <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-blue-400 mb-4 px-2">4. Question Volume</h3>
-                  <div className="bg-[#111827] border border-white/10 rounded-2xl p-2 flex items-center shadow-inner">
+                  <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-2xl p-2 flex items-center shadow-inner">
                     <input 
                       type="number" 
                       min="1" max="180"
@@ -901,7 +1210,7 @@ export default function App() {
                         if (val > 180) val = 180;
                         setCustomVolume(val);
                       }}
-                      className="w-full bg-transparent text-3xl font-black text-white outline-none text-center p-3"
+                      className="w-full bg-transparent text-3xl font-black text-slate-900 dark:text-white outline-none text-center p-3"
                     />
                   </div>
                 </div>
@@ -912,7 +1221,7 @@ export default function App() {
                   <button 
                     disabled={Object.keys(customConfig).length === 0 || !customVolume || isGeneratingPDF}
                     onClick={downloadCustomPDF}
-                    className="flex-1 bg-white/5 border border-white/10 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
+                    className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-slate-100 dark:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
                   >
                     {isGeneratingPDF ? 'Generating...' : <><Download className="w-4 h-4" /> Export PDF</>}
                   </button>
@@ -922,7 +1231,7 @@ export default function App() {
                     onClick={() => {
                       initGameState(Object.values(customConfig), customVolume, true);
                     }}
-                    className="flex-[2] bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-[0_0_30px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)]"
+                    className="flex-[2] bg-blue-600 dark:bg-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-sm dark:shadow-sm md:shadow-sm dark:shadow-sm"
                   >
                     Start Custom Arena
                   </button>
@@ -936,11 +1245,10 @@ export default function App() {
           <motion.div 
             key="categories"
             initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-4xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Choose Category</h2>
@@ -953,22 +1261,22 @@ export default function App() {
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => startPractice('Random')}
-                  className="w-full h-full p-5 bg-gradient-to-br from-purple-900/40 to-[#0A0F16] border border-purple-500/20 rounded-2xl text-sm font-bold text-gray-400 hover:text-purple-400 hover:border-purple-500/40 hover:shadow-[0_8px_30px_rgba(147,51,234,0.15)] transition-all flex items-center justify-between overflow-hidden relative peer"
+                  className="w-full h-full p-5 bg-purple-50 dark:bg-gradient-to-br dark:from-purple-900/40 dark:to-[#0A0F16] border border-purple-200 dark:border-purple-500/20 rounded-2xl text-sm font-bold text-slate-700 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-500/40 hover:shadow-sm transition-all flex items-center justify-between overflow-hidden relative peer"
                 >
                   <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="flex items-center gap-3 relative z-10 w-full justify-center">
-                     <span className="font-extrabold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">RANDOM (ALL)</span>
-                     <Zap className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-purple-400 absolute right-0" />
+                     <span className="font-extrabold tracking-widest uppercase text-purple-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-purple-400 dark:to-indigo-400">RANDOM (ALL)</span>
+                     <Zap className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-purple-600 dark:text-purple-400 absolute right-0" />
                   </div>
                 </motion.button>
                   <div className="absolute -top-3 -right-2 z-50">
                   <div 
                     onClick={(e) => { e.stopPropagation(); setShowRandomAllInfo(!showRandomAllInfo); }}
-                    className="info-popup-trigger w-6 h-6 rounded-full bg-[#111827] border border-white/10 flex items-center justify-center text-[10px] font-black text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
+                    className="info-popup-trigger w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
                   >
                     !
                     {showRandomAllInfo && (
-                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-[#0A0F16] border border-white/10 text-[11px] text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
+                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-white dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
                         Practice a mix of questions from all available categories.
                       </div>
                     )}
@@ -983,11 +1291,10 @@ export default function App() {
           <motion.div 
             key="subcategories"
             initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('categories')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            <button onClick={() => setScreen('categories')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">Select Operation</h2>
@@ -1006,39 +1313,38 @@ export default function App() {
           <motion.div 
             key="setup"
             initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-xl mx-auto px-4 py-8 md:py-12"
           >
             <button onClick={() => {
               if (practiceSetupStep === 2) setPracticeSetupStep(1);
               else { setScreen(practiceCat.includes('-') ? 'subcategories' : 'categories'); setShowSubcategoriesFor(''); }
-            }} aria-label="Go back" className="mb-6 p-2 -ml-2 bg-white/5 hover:bg-white/10 rounded-full transition-all active:scale-90 text-gray-400">
+            }} aria-label="Go back" className="mb-6 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-white">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-slate-900 dark:text-white">
               {practiceSetupStep === 1 ? 'Select Level' : 'Set Volume'}
             </h2>
-            <p className="text-gray-400 border border-white/10 w-fit mx-auto px-3 py-1 rounded-full text-center text-[10px] md:text-xs tracking-widest font-bold uppercase mb-8">
+            <p className="text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-white/10 w-fit mx-auto px-3 py-1 rounded-full text-center text-[10px] md:text-xs tracking-widest font-bold uppercase mb-8">
                {getCatLabel(practiceCat)}
             </p>
             
             {practiceSetupStep === 1 && (
               <>
                 {['Tables', 'Squares', 'Cubes', 'Roots'].includes(practiceCat) ? (
-                  <div className="mb-6 space-y-4 bg-[#111827]/80 backdrop-blur-md p-5 rounded-2xl border border-white/5 shadow-2xl">
+                  <div className="mb-6 space-y-4 bg-white dark:bg-[#111827]/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-2xl">
                     <div className="flex flex-col items-center justify-center gap-2 mb-4">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300">Number Range</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-gray-300">Number Range</h3>
                       <button 
                         onClick={() => setShowRangeInfo(!showRangeInfo)}
-                        className="info-popup-trigger flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-gray-500 hover:text-gray-300 transition-colors"
+                        className="info-popup-trigger flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors"
                       >
                         <div className="w-4 h-4 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">i</div>
                         <span>Info</span>
                       </button>
                       
                       {showRangeInfo && (
-                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-white/5 text-[11px] text-gray-400 rounded-lg text-center leading-relaxed mt-2">
+                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-slate-200 dark:border-white/5 text-[11px] text-slate-600 dark:text-gray-400 rounded-lg text-center leading-relaxed mt-2">
                           Define the start and end values for the numbers. Questions will be generated exclusively within this specified range.
                         </div>
                       )}
@@ -1046,7 +1352,7 @@ export default function App() {
                     
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="text-[11px] font-bold text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
+                        <label className="text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
                         <input 
                           type="number" 
                           value={practiceConfig.range.start === '' ? '' : (practiceConfig.range.start ?? '')}
@@ -1054,12 +1360,12 @@ export default function App() {
                             const val = parseInt(e.target.value);
                             setPracticeConfig({...practiceConfig, range: {...practiceConfig.range, start: isNaN(val) ? '' : val}});
                           }}
-                          className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-white focus:border-gray-500 outline-none text-center font-bold"
+                          className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-slate-900 dark:text-white focus:border-gray-500 outline-none text-center font-bold"
                           placeholder="Ex: 1"
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[11px] font-bold text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
+                        <label className="text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
                         <input 
                           type="number" 
                           value={practiceConfig.range.end === '' ? '' : (practiceConfig.range.end ?? '')}
@@ -1067,7 +1373,7 @@ export default function App() {
                             const val = parseInt(e.target.value);
                             setPracticeConfig({...practiceConfig, range: {...practiceConfig.range, end: isNaN(val) ? '' : val}});
                           }}
-                          className="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-white focus:border-gray-500 outline-none text-center font-bold"
+                          className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-slate-900 dark:text-white focus:border-gray-500 outline-none text-center font-bold"
                           placeholder="Ex: 10"
                         />
                       </div>
@@ -1076,7 +1382,7 @@ export default function App() {
                     <button 
                       onClick={() => setPracticeSetupStep(2)}
                       disabled={practiceConfig.range.start === '' || practiceConfig.range.end === ''}
-                      className="w-full mt-4 bg-white/10 hover:bg-white/20 text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30"
+                      className="w-full mt-4 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:bg-white/20 text-slate-900 dark:text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30"
                     >
                       Continue
                     </button>
@@ -1101,9 +1407,9 @@ export default function App() {
 
             {practiceSetupStep === 2 && (
               <div className="mb-6">
-                <div className="bg-[#111827]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6 shadow-2xl">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-300 mb-4 text-center">Total Questions</h3>
-                  <div className="bg-[#111827] border border-white/10 rounded-2xl p-2 flex items-center mb-6 shadow-inner">
+                <div className="bg-white dark:bg-[#111827]/80 backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-2xl">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-gray-300 mb-4 text-center">Total Questions</h3>
+                  <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-2xl p-2 flex items-center mb-6 shadow-inner">
                     <input 
                       type="number" 
                       min="1" max="100"
@@ -1117,7 +1423,7 @@ export default function App() {
                         if (val > 100) val = 100;
                         setPracticeConfig({...practiceConfig, volume: val});
                       }}
-                      className="w-full bg-transparent text-3xl font-black text-white outline-none text-center p-3"
+                      className="w-full bg-transparent text-3xl font-black text-slate-900 dark:text-white outline-none text-center p-3"
                       placeholder="Enter volume (Max 100)"
                     />
                   </div>
@@ -1135,7 +1441,7 @@ export default function App() {
                       }];
                       initGameState(finalCategories, practiceConfig.volume || 10, false);
                     }}
-                    className="w-full mt-6 bg-gradient-to-r from-gray-700 to-gray-600 text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(255,255,255,0.05)] active:scale-95 disabled:opacity-30 border border-white/10"
+                    className="w-full mt-6 bg-gradient-to-r from-gray-700 to-gray-600 text-slate-900 dark:text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:scale-[1.02] transition-all shadow-sm active:scale-95 disabled:opacity-30 border border-slate-200 dark:border-white/10"
                   >
                     Start Practice
                   </button>
@@ -1155,7 +1461,7 @@ export default function App() {
             <header className="flex justify-between items-center mb-10 w-full z-20">
               <div className="flex flex-col flex-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Difficulty Level</span>
-                <span className="text-lg md:text-xl font-bold text-white">
+                <span className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">
                   {getCatLabel(currentQuestion.category)} {gameState.categories.find(c => c.name === currentQuestion.category)?.difficulty ? diffEmojis[gameState.categories.find(c => c.name === currentQuestion.category)!.difficulty!] : `[${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.start || ''}-${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.end || ''}]`}
                 </span>
               </div>
@@ -1172,13 +1478,13 @@ export default function App() {
               <div className="flex flex-1 justify-end">
                 <button 
                   onClick={() => setShowQuestionGrid(true)}
-                  className="flex bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-white/5 shadow-[0_0_15px_rgba(255,255,255,0.05)] text-emerald-400 hover:bg-white/20 transition-all active:scale-95 cursor-pointer"
+                  className="flex bg-slate-100 dark:bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-slate-200 dark:border-white/5 shadow-sm text-emerald-400 hover:bg-slate-200 dark:bg-white/20 transition-all active:scale-95 cursor-pointer"
                 >
                   <div className="flex flex-col items-end">
                       <span className="text-xs md:text-sm font-bold tracking-widest uppercase">
                         Q {gameState.currentIndex + 1} <span className="text-emerald-400/50">/{gameState.totalQuestions}</span>
                       </span>
-                      <span className="text-[8px] tracking-widest uppercase text-white/50">Tap to view</span>
+                      <span className="text-[8px] tracking-widest uppercase text-slate-900 dark:text-white/50">Tap to view</span>
                   </div>
                 </button>
               </div>
@@ -1207,11 +1513,11 @@ export default function App() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleAnswer(opt)}
                       className={`relative group h-20 md:h-28 border rounded-3xl flex items-center justify-center text-3xl md:text-4xl font-bold transition-all active:scale-95 disabled:opacity-50 overflow-hidden ${
-                         gameState.isTestMode && gameState.answers[gameState.currentIndex] === String(opt) ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_30px_rgba(37,99,235,0.4)]' : 'bg-[#0A0F1A] text-white border-white/5 hover:bg-blue-500/20 hover:border-blue-500/50 active:bg-blue-600 shadow-inner'
+                         gameState.isTestMode && gameState.answers[gameState.currentIndex] === String(opt) ? 'bg-blue-600 border-blue-400 text-slate-900 dark:text-white shadow-sm' : 'bg-white dark:bg-[#0A0F1A] text-slate-900 dark:text-white border-slate-200 dark:border-white/5 hover:bg-blue-500/20 hover:border-blue-500/50 active:bg-blue-600 shadow-inner'
                       }`}
                     >
                       {opt}
-                      <span className="hidden md:flex absolute top-3 left-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest group-hover:text-blue-300">
+                      <span className="hidden md:flex absolute top-3 left-4 text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-widest group-hover:text-blue-300">
                         [{i + 1}]
                       </span>
                     </motion.button>
@@ -1219,11 +1525,11 @@ export default function App() {
                 </div>
               ) : (
                 <div className="w-full max-w-md md:max-w-lg mx-auto flex flex-col gap-4 pb-8">
-                  <div className="bg-white/5 border border-white/20 focus-within:border-emerald-500 rounded-3xl p-1 transition-all group flex items-center">
+                  <div className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/20 focus-within:border-emerald-500 rounded-3xl p-1 transition-all group flex items-center">
                     <input 
                       type="text" 
                       inputMode="none"
-                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-white placeholder:text-white/10"
+                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-slate-900 dark:text-white placeholder:text-slate-900 dark:text-white/10"
                       placeholder="?"
                       value={manualInput}
                       onChange={(e) => setManualInput(e.target.value)}
@@ -1247,10 +1553,10 @@ export default function App() {
                           else setManualInput(prev => prev + key);
                         }}
                         className={`h-16 font-bold text-xl md:text-3xl rounded-2xl active:scale-95 transition-all
-                          ${key === 'GO' ? 'bg-emerald-600 text-white col-span-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 
+                          ${key === 'GO' ? 'bg-emerald-600 text-slate-900 dark:text-white col-span-2 shadow-sm' : 
                             key === 'DEL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
                             ['/', '-', '.'].includes(key) ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                            'bg-[#0A0F1A] border border-white/5 text-white shadow-inner hover:bg-white/5'}
+                            'bg-white dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white shadow-inner hover:bg-slate-100 dark:bg-white/5'}
                         `}
                       >
                         {key}
@@ -1267,7 +1573,7 @@ export default function App() {
                      layout
                      onClick={() => {if (gameState.currentIndex > 0) goToQuestion(gameState.currentIndex - 1);}}
                      disabled={gameState.currentIndex === 0}
-                     className="py-4 rounded-xl bg-[#0A0F1A] hover:bg-white/5 border border-white/5 text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     className="py-4 rounded-xl bg-white dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
                      style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
                    >
                      <motion.span layout="position">
@@ -1279,11 +1585,10 @@ export default function App() {
                    {gameState.currentIndex === gameState.totalQuestions - 1 && Object.values(gameState.answers).length > 0 ? (
                       <motion.button 
                         initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 0.8 }}
                         layout
                         onClick={submitTest}
-                        className="h-full px-8 rounded-xl bg-gradient-to-r from-blue-600 to-emerald-500 hover:from-blue-500 hover:to-emerald-400 text-white font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
+                        className="h-full px-8 rounded-xl bg-[#FFD13B] dark:bg-gradient-to-r dark:from-blue-600 dark:to-emerald-500 hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-white font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
                       >
                         Submit Test
                       </motion.button>
@@ -1298,7 +1603,7 @@ export default function App() {
                         skipQuestion();
                         if (gameState.currentIndex === gameState.totalQuestions - 1) submitTest();
                      }}
-                     className="py-4 rounded-xl bg-[#0A0F1A] hover:bg-white/5 border border-white/5 text-pink-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     className="py-4 rounded-xl bg-white dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-pink-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
                      style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
                    >
                      <motion.span layout="position">
@@ -1314,30 +1619,29 @@ export default function App() {
               {showQuestionGrid && (
                 <motion.div 
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0 }}
                   className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm p-6 md:p-12 overflow-y-auto"
                 >
                   <button 
                     onClick={() => setShowQuestionGrid(false)} 
                     aria-label="Close question grid"
-                    className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white transition-all shadow-xl"
+                    className="absolute top-6 right-6 p-3 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:bg-white/20 active:scale-90 text-slate-900 dark:text-white transition-all shadow-xl"
                   >
                     ✕
                   </button>
-                  <h2 className="text-2xl md:text-3xl font-black text-white uppercase tracking-widest text-center mt-12 mb-4">Question Grid</h2>
-                  <p className="text-center text-gray-500 text-xs tracking-widest uppercase mb-12">
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-widest text-center mt-12 mb-4">Question Grid</h2>
+                  <p className="text-center text-slate-500 dark:text-gray-500 text-xs tracking-widest uppercase mb-12">
                      {gameState.isTestMode ? "Tap a number to jump to question" : "Live attempt status"}
                   </p>
                   
                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 max-w-4xl mx-auto w-full mb-12">
                     {Array.from({ length: gameState.totalQuestions }).map((_, i) => {
                       const status = gameState.answers[i];
-                      let stateColorClass = 'bg-[#111827] text-gray-400 border-white/5'; // unattempted
+                      let stateColorClass = 'bg-white dark:bg-[#111827] text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/5'; // unattempted
                       
                       if (gameState.isTestMode) {
                         if (status === 'skipped') stateColorClass = 'bg-pink-500/20 text-pink-400 border-pink-500/30';
-                        else if (status !== undefined) stateColorClass = 'bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]'; // Answered
+                        else if (status !== undefined) stateColorClass = 'bg-blue-600 text-slate-900 dark:text-white border-blue-400 shadow-sm'; // Answered
                       } else {
                         // Practice mode
                         if (status !== undefined && status !== 'skipped') {
@@ -1366,8 +1670,8 @@ export default function App() {
                   </div>
                   
                   {/* Legend */}
-                  <div className="flex flex-wrap justify-center gap-6 text-xs font-bold uppercase tracking-widest text-gray-500 mt-auto">
-                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#111827] border border-white/10" /> Unattempted</div>
+                  <div className="flex flex-wrap justify-center gap-6 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-gray-500 mt-auto">
+                    <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10" /> Unattempted</div>
                     {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-blue-600 border border-blue-400" /> Answered</div>}
                     {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-pink-500/20 border border-pink-500/30" /> Skipped</div>}
                     {!gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500/30" /> Correct</div>}
@@ -1381,7 +1685,7 @@ export default function App() {
               <motion.div
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-[#0A0F16]/60 backdrop-blur-sm"
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-white dark:bg-[#0A0F16]/60 backdrop-blur-sm"
               >
                 {lastResult.isCorrect ? (
                   <div className="text-green-500 animate-bounce">
@@ -1425,6 +1729,18 @@ export default function App() {
                       "Growth happens at the edge of failure."
                     }"
                   </p>
+
+                  <div className="flex flex-col items-center mb-12">
+                    <div className="bg-amber-500/10 border border-amber-500/20 px-6 py-3 rounded-full inline-flex items-center justify-center">
+                       <span className="text-amber-600 dark:text-amber-500 font-bold mr-3 text-sm uppercase tracking-widest">+ DEPOSITED</span>
+                       <MPointBadge points={earnedMPoints} size="lg" />
+                    </div>
+                    {(!user || profile?.isGuest) && (
+                      <div className="text-xs text-red-500 dark:text-red-400 font-bold tracking-wider mt-4">
+                        Login to climb the leaderboard
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
                     <ResultMetric label="Accuracy" value={`${accuracy}%`} icon={<Target className="w-5 h-5 text-emerald-400" />} />
@@ -1438,21 +1754,21 @@ export default function App() {
                       <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400">Detailed Analysis</h3>
                     </div>
                     {derivedHistory.map((h, i) => (
-                      <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-[#111827] border-emerald-500/30 border-l-4 border-l-emerald-500 shadow-[0_4px_20px_rgba(16,185,129,0.05)]' : 'bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-[0_4px_20px_rgba(239,68,68,0.05)]'}`}>
+                      <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-white dark:bg-[#111827] border-emerald-500/30 border-l-4 border-l-emerald-500 shadow-sm' : 'bg-white dark:bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-sm'}`}>
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
-                          <span className="text-xl md:text-2xl font-black text-white">{h.question.expression}</span>
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
+                          <span className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">{h.question.expression}</span>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right">
-                            <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Your Answer</div>
+                            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Your Answer</div>
                             <div className={`font-black text-lg ${h.isCorrect ? 'text-emerald-400' : 'text-red-400 opacity-80'}`}>
                               {h.userSelection === 'skipped' ? 'Skipped' : h.userSelection}
                             </div>
                           </div>
                           {!h.isCorrect && (
-                            <div className="text-right pl-6 border-l w-24 border-white/10">
-                              <div className="text-[10px] uppercase font-bold text-gray-500 mb-1">Correct</div>
+                            <div className="text-right pl-6 border-l w-24 border-slate-200 dark:border-white/10">
+                              <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Correct</div>
                               <div className="font-black text-emerald-400 text-lg">{h.question.answer}</div>
                             </div>
                           )}
@@ -1464,10 +1780,10 @@ export default function App() {
                   <div className="flex gap-4 mt-auto">
                     <button 
                       onClick={resetGame}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:from-blue-500 hover:to-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(59,130,246,0.3)] md:shadow-[0_0_40px_rgba(59,130,246,0.5)] group relative cursor-pointer"
+                      className="flex-1 bg-blue-600 dark:bg-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-sm dark:shadow-sm md:shadow-sm dark:shadow-sm group relative cursor-pointer"
                     >
                       Restart <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-white/50 tracking-widest uppercase">
+                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-slate-900 dark:text-white/50 tracking-widest uppercase">
                         Press [Enter]
                       </span>
                     </button>
@@ -1478,7 +1794,7 @@ export default function App() {
                         total: gameState.totalQuestions,
                         speed: ((Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10) / gameState.totalQuestions).toFixed(1)
                       })}
-                      className="w-14 md:w-16 flex items-center justify-center bg-white/10 text-emerald-400 rounded-full hover:bg-white/20 transition-all active:scale-95 border border-white/5 shadow-lg"
+                      className="w-14 md:w-16 flex items-center justify-center bg-slate-100 dark:bg-white/10 text-emerald-400 rounded-full hover:bg-slate-200 dark:bg-white/20 transition-all active:scale-95 border border-slate-200 dark:border-white/5 shadow-lg"
                     >
                       <Share2 className="w-5 h-5 md:w-6 md:h-6" />
                       <span className="sr-only">Share result</span>
@@ -1494,28 +1810,32 @@ export default function App() {
           <motion.div 
             key="about"
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.1 }}
             className="w-full max-w-3xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-white/10 rounded-full text-gray-400 transition-colors">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h2 className="text-5xl md:text-7xl font-black tracking-tight mb-12 text-white">Developers.</h2>
+            <h2 className="text-5xl md:text-7xl font-black tracking-tight mb-12 text-slate-900 dark:text-white">Developers.</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
               <DevCard name="ABDUL HAQUE" role="Design Lead & Architect" bio="Passionate developer creating innovative educational tools for the modern age." />
+              <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full text-center py-4 md:py-0 pointer-events-none z-10">
+                 <span className="bg-white dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 px-4 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] text-slate-500 dark:text-gray-400 shadow-md whitespace-nowrap">
+                   🤫 BOTH DEVELOPERS ARE SAME PERSON 🤐
+                 </span>
+              </div>
               <DevCard name="SAAD" role="Experience Developer" bio="Focused on high-performance interactive experiences and premium UI systems." />
             </div>
 
-            <div className="mt-8 p-6 md:p-8 bg-[#111827] border border-white/5 rounded-[32px] hover:border-emerald-500/30 transition-colors shadow-sm relative overflow-hidden group">
+            <div className="mt-8 p-6 md:p-8 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/5 rounded-[32px] hover:border-blue-400 dark:hover:border-emerald-500/30 transition-colors shadow-sm relative overflow-hidden group">
               <div className="flex flex-col md:flex-row gap-6 md:items-center">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-blue-500 flex items-center justify-center shadow-lg shrink-0">
-                  <Mail className="w-8 h-8 text-white" />
+                  <Mail className="w-8 h-8 text-slate-900 dark:text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-2xl text-white tracking-tight mb-2">Get in Touch</h3>
-                  <p className="text-gray-400 text-sm md:text-base mb-4 max-w-lg leading-relaxed">
+                  <h3 className="font-bold text-2xl text-slate-900 dark:text-white tracking-tight mb-2">Get in Touch</h3>
+                  <p className="text-slate-600 dark:text-gray-400 text-sm md:text-base mb-4 max-w-lg leading-relaxed">
                     Please let us know your experience, any feature requests, or just drop by to say hi! We are constantly looking to improve the Arena and build the ultimate math training tool.
                   </p>
                   <a href="mailto:numboostarenaofficial@gmail.com" className="inline-flex items-center gap-2 text-emerald-400 font-bold tracking-wide hover:text-emerald-300 transition-colors bg-emerald-500/10 px-4 py-2 rounded-xl text-sm md:text-base break-all">
@@ -1525,16 +1845,298 @@ export default function App() {
               </div>
             </div>
 
-            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-white relative overflow-hidden group shadow-2xl border border-white/10">
+            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-slate-900 dark:text-white relative overflow-hidden group shadow-2xl border border-slate-200 dark:border-white/10">
               <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:rotate-12 group-hover:scale-110 transition-transform">
                 <Zap className="w-40 h-40 md:w-64 md:h-64 fill-white/20" />
               </div>
               <h3 className="text-3xl md:text-5xl font-black mb-2">Stay Elite.</h3>
               <p className="text-blue-100/80 text-base leading-relaxed mb-6 md:mb-10 max-w-[300px] md:max-w-md">NumBoost Arena is built for those who never stop learning.</p>
               <div className="flex gap-4">
-                <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/40 transition-colors"><Share2 onClick={() => handleGlobalShare()} className="w-5 h-5 text-emerald-400" /></div>
-                <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/40 transition-colors"><Heart className="w-5 h-5 text-blue-400" /></div>
+                <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/5 dark:bg-black/40 transition-colors"><Share2 onClick={() => handleGlobalShare()} className="w-5 h-5 text-emerald-400" /></div>
+                <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/5 dark:bg-black/40 transition-colors"><Heart className="w-5 h-5 text-blue-400" /></div>
               </div>
+            </div>
+          </motion.div>
+        )}
+
+        {screen === 'profile' && (
+          <motion.div 
+            key="profile"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.05 }}
+            className="w-full max-w-2xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
+          >
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-white">Profile.</h2>
+            
+            {!user ? (
+               <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[32px] p-8 text-center space-y-6">
+                 <div className="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                   <UserIcon className="w-10 h-10 text-slate-600 dark:text-gray-400" />
+                 </div>
+                 <h3 className="text-2xl font-bold">Unregistered Player</h3>
+                 <p className="text-slate-600 dark:text-gray-400 max-w-sm mx-auto">Create an account to save your progress, participate in the leaderboard, and customize your profile.</p>
+                 <div className="flex flex-col gap-3 pt-6 max-w-xs mx-auto">
+                   <button 
+                     onClick={() => setShowAuthModal(true)}
+                     className="w-full bg-blue-600 dark:bg-emerald-500 text-white py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                   >
+                     <LogIn className="w-5 h-5" /> Sign In
+                   </button>
+                   <button 
+                     onClick={() => signInAsGuest()}
+                     className="w-full bg-transparent border border-slate-300 dark:border-white/20 text-slate-900 dark:text-white py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-slate-100 dark:bg-white/5 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                   >
+                     Play as Guest
+                   </button>
+                 </div>
+               </div>
+            ) : (
+               <div className="bg-white dark:bg-[#111827] border border-emerald-500/30 rounded-[32px] p-8 space-y-8 shadow-sm">
+                 <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
+                   <div className="relative group">
+                     {editProfileImage ? (
+                        <img src={editProfileImage} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-emerald-500/20" />
+                     ) : (
+                        <div className="w-28 h-28 rounded-full bg-emerald-500/10 border-4 border-emerald-500/20 flex items-center justify-center">
+                          <UserIcon className="w-12 h-12 text-emerald-500/50" />
+                        </div>
+                     )}
+                     <label className="absolute bottom-0 right-0 bg-emerald-500 p-2 rounded-full cursor-pointer hover:bg-emerald-400 transition-colors shadow-lg">
+                       <Camera className="w-4 h-4 text-slate-900 dark:text-white" />
+                       <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                         const file = e.target.files?.[0];
+                         if (file) {
+                           try {
+                             let finalImage = file;
+                             if (file.size > 200 * 1024) {
+                               finalImage = await imageCompression(file, { maxSizeMB: 0.2, maxWidthOrHeight: 512, useWebWorker: false });
+                             }
+                             const reader = new FileReader();
+                             reader.readAsDataURL(finalImage);
+                             reader.onloadend = async () => {
+                               setEditProfileImage(reader.result as string);
+                             }
+                           } catch (err) {
+                             console.error(err);
+                           }
+                         }
+                       }} />
+                     </label>
+                   </div>
+                   
+                   <div className="flex-1 w-full space-y-4">
+                     <div>
+                       <label className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold ml-4">Display Name</label>
+                       <input 
+                         type="text" 
+                         value={editProfileName}
+                         onChange={(e) => setEditProfileName(e.target.value)}
+                         className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-slate-900 dark:text-white font-bold placeholder:text-slate-900 dark:text-white/20 focus:outline-none focus:border-emerald-500/50 mt-1 transition-colors"
+                       />
+                     </div>
+                     {!profile?.isGuest && (
+                        <button 
+                          disabled={isSavingProfile}
+                          onClick={async () => {
+                            setIsSavingProfile(true);
+                            try {
+                              await updateProfileData({ displayName: editProfileName, photoURL: editProfileImage || '' });
+                              setToastMessage('Profile updated!');
+                            } catch (e: any) {
+                              if (e.code === 'resource-exhausted') {
+                                setToastMessage('Database quota exceeded. Please try again tomorrow.');
+                              } else {
+                                setToastMessage('Failed to save. Try a smaller image or distinct name.');
+                              }
+                            } finally {
+                              setIsSavingProfile(false);
+                              setTimeout(() => setToastMessage(''), 4000);
+                            }
+                          }}
+                          className="w-auto px-6 bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm tracking-wide shadow-lg hover:bg-emerald-400 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
+                        >
+                          {isSavingProfile ? 'Saving...' : 'Save Profile'}
+                        </button>
+                     )}
+                     {profile?.isGuest && (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-left">
+                          <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-200/80 leading-relaxed">
+                            You are playing as a Guest. To save your progress permanently and appear on the Leaderboard, please link a Google account.
+                          </p>
+                        </div>
+                     )}
+                   </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5">
+                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Weekly Rank</span>
+                     <MPointBadge points={profile?.weeklyMPoints || 0} size="md" />
+                   </div>
+                   <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5">
+                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Total Extracted</span>
+                     <MPointBadge points={profile?.totalMPoints || 0} size="md" />
+                   </div>
+                 </div>
+                 
+                 <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-white/10">
+                   <button 
+                     onClick={() => { logout(); setScreen('home'); }}
+                     className="bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 px-6 rounded-xl font-bold text-sm tracking-wide transition-colors flex items-center justify-center gap-2"
+                   >
+                     <LogOut className="w-4 h-4" /> Sign Out
+                   </button>
+                 </div>
+               </div>
+            )}
+          </motion.div>
+        )}
+
+        {screen === 'leaderboard' && (
+          <motion.div 
+            key="leaderboard"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.05 }}
+            className="w-full max-w-3xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
+          >
+            <div className="flex justify-between items-center mb-8 relative">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setScreen('home')} aria-label="Go back" className="p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
+                  <ArrowLeft className="w-6 h-6" />
+                </button>
+                <button 
+                  onClick={async () => {
+                     setIsFetchingLB(true);
+                     try {
+                       const currentWeekId = getCurrentWeekId();
+                       const q = query(collection(db, 'users'), orderBy('weeklyMPoints', 'desc'), limit(100)); // increased limit to 100 to catch more
+                       const snap = await getDocs(q);
+                       let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                       data = data.filter((u: any) => !u.isGuest).map((u: any) => ({
+                         ...u,
+                         effectivePoints: u.currentWeekId === currentWeekId ? (u.weeklyMPoints || 0) : 0
+                       })).sort((a: any, b: any) => b.effectivePoints - a.effectivePoints);
+                       setLeaderboard(data);
+                     } catch(e: any) {
+                       console.error('fetchLB error:', e.message);
+                     } finally {
+                       setIsFetchingLB(false);
+                     }
+                  }}
+                  disabled={isFetchingLB}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 shadow-sm border border-slate-200 dark:border-transparent text-slate-700 dark:text-gray-300 rounded-full font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isFetchingLB ? 'animate-spin' : ''}`} /> Refresh
+                </button>
+              </div>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowLeaderboardInfo(!showLeaderboardInfo)} 
+                  className="info-popup-trigger p-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-blue-400 transition-colors border border-blue-400/20 bg-blue-500/10"
+                >
+                  <Info className="w-5 h-5" />
+                </button>
+                <AnimatePresence>
+                  {showLeaderboardInfo && (
+                    <motion.div 
+                       initial={{ opacity: 0, scale: 0.9 }}
+                       animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 0.9 }}
+                       className="info-popup-content absolute top-full right-0 mt-2 w-64 md:w-80 bg-white dark:bg-[#111827] border border-blue-500/30 rounded-2xl p-4 shadow-xl z-50 text-sm shadow-sm"
+                    >
+                      <h4 className="font-bold text-blue-400 uppercase tracking-widest mb-2 text-xs">How Points Work</h4>
+                      <ul className="text-slate-700 dark:text-gray-300 space-y-2 list-disc pl-4 text-xs font-medium">
+                        <li>Beginner: 1 pt / Table, Root..: 2 pts / Adv: 3 pts / Exp: 4 pts</li>
+                        <li>1 <b>M-Point</b> (Leaderboard Point) = 100 points</li>
+                        <li>Leaderboard resets every week on Sunday (UTC).</li>
+                        <li>Last week's top players retain their position but start with 0 M-Points until they play.</li>
+                        <li>Guests do not appear on the leaderboard.</li>
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-white flex items-center gap-3">
+              <Trophy className="w-10 h-10 md:w-12 md:h-12 text-amber-400" />
+              Global Rank.
+            </h2>
+
+            <div className="bg-white dark:bg-[#111827] border border-amber-500/30 rounded-[32px] p-6 md:p-8 space-y-4 shadow-sm relative overflow-hidden">
+               {leaderboard.length === 0 ? (
+                  <div className="text-center text-slate-500 dark:text-gray-500 py-10">Loading arena champions...</div>
+               ) : (
+                  <div className="flex flex-col gap-3">
+                    {leaderboard.slice(0, 10).map((u, i) => {
+                       const isOldWeek = u.currentWeekId !== getCurrentWeekId();
+                       const displayScore = isOldWeek ? 0 : (u.weeklyMPoints || 0);
+                       const isMe = user && user.uid === u.id;
+                       
+                       return (
+                         <div key={u.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isMe ? 'bg-gradient-to-r from-amber-50 dark:from-yellow-500/10 to-amber-100 dark:to-amber-500/5 border-amber-300 dark:border-amber-500/30 shadow-sm' : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'}`}>
+                           <div className="flex items-center gap-4">
+                             <div className={`w-8 font-black text-2xl text-center shrink-0 ${i === 0 ? 'text-yellow-500 text-4xl drop-shadow-sm' : i === 1 ? 'text-slate-400 text-3xl' : i === 2 ? 'text-amber-700 text-3xl' : 'text-slate-400 dark:text-gray-600'}`}>
+                                {i + 1}
+                             </div>
+                             <div className="relative">
+                               {u.photoURL ? (
+                                 <img src={u.photoURL} alt={u.displayName || "Player"} className={`w-12 h-12 rounded-full border-2 object-cover ${i === 0 ? 'border-yellow-400 dark:border-amber-400 shadow-md' : 'border-slate-200 dark:border-white/10'}`} referrerPolicy="no-referrer" />
+                               ) : (
+                                 <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center border-2 border-slate-200 dark:border-white/10">
+                                   <UserIcon className="w-6 h-6 text-slate-400 dark:text-gray-500" />
+                                 </div>
+                               )}
+                               {i === 0 && <span className="absolute -top-3 -right-2 text-2xl">👑</span>}
+                             </div>
+                             <div className="flex flex-col">
+                               <span className={`font-black tracking-tight text-lg ${isMe ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-gray-200'}`}>
+                                  {u.displayName || 'Unknown Player'}
+                               </span>
+                               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{isOldWeek ? 'Last Week Leader' : 'Active'}</span>
+                             </div>
+                           </div>
+                           <div className="text-right flex flex-col items-end shrink-0">
+                             <MPointBadge points={displayScore} size="lg" />
+                           </div>
+                         </div>
+                       );
+                    })}
+
+                    {user && profile && !profile.isGuest && !leaderboard.slice(0, 10).find(u => u.id === user.uid) && (
+                      <>
+                        <div className="h-px bg-slate-200 dark:bg-white/10 my-2"></div>
+                        <div className="flex items-center justify-between p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 shadow-sm">
+                           <div className="flex items-center gap-4">
+                             <div className="w-8 font-black text-xl text-center text-amber-600 dark:text-amber-500 opacity-60">
+                                {leaderboard.findIndex(u => u.id === user.uid) !== -1 ? leaderboard.findIndex(u => u.id === user.uid) + 1 : '—'}
+                             </div>
+                             {profile.photoURL ? (
+                               <img src={profile.photoURL} alt="" className="w-10 h-10 rounded-full border border-slate-300 dark:border-white/20 object-cover" />
+                             ) : (
+                               <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center border border-slate-300 dark:border-white/20">
+                                 <UserIcon className="w-5 h-5 text-slate-600 dark:text-gray-400" />
+                               </div>
+                             )}
+                             <div className="flex flex-col">
+                               <span className="font-bold text-amber-500 dark:text-amber-400">
+                                  {profile.displayName || 'Me'}
+                               </span>
+                               <span className="text-[10px] text-slate-500 dark:text-gray-500 uppercase tracking-widest">Active</span>
+                             </div>
+                           </div>
+                           <div className="text-right flex flex-col items-end">
+                             <MPointBadge points={profile.currentWeekId === getCurrentWeekId() ? (profile.weeklyMPoints || 0) : 0} size="md" />
+                           </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+               )}
             </div>
           </motion.div>
         )}
@@ -1556,17 +2158,17 @@ function MenuCard({ icon, title, description, onClick, accent }: { icon: React.R
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className="group w-full p-6 bg-gradient-to-br from-white/5 to-[#0F1626] border border-white/5 rounded-2xl text-left flex items-center gap-5 transition-all hover:bg-white/10 hover:border-white/10 hover:shadow-[0_10px_30px_rgba(255,255,255,0.03)] relative overflow-hidden"
+      className="group w-full p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[28px] text-left flex items-center gap-5 transition-all hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-sm relative overflow-hidden"
     >
       <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-      <div className={`p-4 rounded-xl transition-colors ${accentClasses[accent]} bg-white/5 text-gray-400 relative z-10`}>
+      <div className={`p-4 rounded-xl transition-colors ${accentClasses[accent]} bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 relative z-10`}>
         {icon}
       </div>
       <div className="flex-1">
-        <h3 className="font-bold text-lg leading-tight text-gray-300 group-hover:text-white transition-colors">{title}</h3>
-        <p className="text-gray-500 text-xs">{description}</p>
+        <h3 className="font-bold text-lg leading-tight text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">{title}</h3>
+        <p className="text-slate-500 dark:text-gray-500 text-xs">{description}</p>
       </div>
-      <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+      <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-slate-900 dark:text-white group-hover:translate-x-1 transition-all" />
     </motion.button>
   );
 }
@@ -1578,11 +2180,11 @@ function CategoryBtn({ name, onClick }: { name: string; onClick: () => void; key
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={onClick}
-      className="p-5 bg-gradient-to-br from-[#111827] to-[#0A0F16] border border-white/5 rounded-2xl text-sm font-bold text-gray-400 hover:text-blue-400 hover:border-blue-500/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all flex items-center justify-between group overflow-hidden relative"
+      className="p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all flex items-center justify-between group overflow-hidden relative shadow-sm"
     >
-      <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-[#FFD13B]/5 dark:bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
       <span className="relative z-10">{name}</span>
-      <Zap className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-blue-400 relative z-10" />
+      <Zap className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-amber-500 dark:text-blue-400 relative z-10" />
     </motion.button>
   );
 }
@@ -1601,49 +2203,49 @@ function DifficultyCard({ level, onClick, selected }: { level: Difficulty; onCli
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`relative overflow-hidden w-full p-6 text-left rounded-2xl border transition-all duration-300 group ${selected ? 'bg-gradient-to-r from-blue-500/20 to-emerald-500/20 border-blue-500 shadow-[0_10px_40px_rgba(59,130,246,0.25)]' : 'border-white/5 bg-[#111827] hover:border-blue-500/50 hover:shadow-[0_8px_30px_rgba(255,255,255,0.03)]'}`}
+      className={`relative overflow-hidden w-full p-6 text-left rounded-[24px] border transition-all duration-300 group ${selected ? 'bg-slate-100 dark:bg-white/10 border-slate-400 dark:border-white/30 shadow-inner' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-sm'}`}
     >
-      {!selected && <div className="absolute inset-0 bg-blue-900/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+      {!selected && <div className="absolute inset-0 bg-slate-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
       <div className="flex justify-between items-center mb-1 relative z-10">
-        <span className={`text-xl font-black uppercase tracking-tight transition-colors ${selected ? 'text-blue-400' : 'text-white group-hover:text-blue-400'}`}>
+        <span className={`text-xl font-black uppercase tracking-tight transition-colors ${selected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
           {level} {diffEmojis[level]}
         </span>
         <div className="flex gap-1">
           {Array.from({ length: ['Beginner', 'Intermediate', 'Advanced', 'Expert'].indexOf(level) + 1 }).map((_, i) => (
-            <div key={i} className={`w-1.5 h-3 rounded-[1px] ${selected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-blue-500/80 shadow-[0_0_8px_rgba(59,130,246,0.5)]'}`} />
+            <div key={i} className={`w-1.5 h-3 rounded-[1px] ${selected ? 'bg-slate-900 dark:bg-emerald-400 dark:shadow-sm' : 'bg-slate-300 dark:bg-blue-500/80 dark:shadow-sm'}`} />
           ))}
         </div>
       </div>
-      <p className={`text-xs ${selected ? 'text-blue-200' : 'text-gray-500'}`}>{descMap[level]}</p>
+      <p className={`text-xs ${selected ? 'text-slate-700 font-medium dark:text-blue-200' : 'text-slate-500 dark:text-gray-500'}`}>{descMap[level]}</p>
     </motion.button>
   );
 }
 
 function ResultMetric({ label, value, icon }: { label: string, value: string, icon: React.ReactNode }) {
   return (
-    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md hover:bg-white/10 transition-colors">
-      <div className="flex items-center gap-2 mb-2 text-gray-400">
+    <div className="p-5 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 backdrop-blur-md hover:bg-slate-100 dark:bg-white/10 transition-colors">
+      <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-gray-400">
         {icon}
         <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
       </div>
-      <div className="text-2xl font-black tabular-nums text-white">{value}</div>
+      <div className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{value}</div>
     </div>
   );
 }
 
 function DevCard({ name, role, bio }: { name: string, role: string, bio: string }) {
   return (
-    <div className="p-8 bg-[#111827] rounded-[32px] border border-white/5 hover:border-emerald-500/30 transition-colors">
+    <div className="p-8 bg-white dark:bg-[#111827] rounded-[32px] border border-slate-200 dark:border-white/5 hover:border-blue-400 dark:hover:border-emerald-500/30 transition-colors">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-lg">
+        <div className="w-12 h-12 rounded-2xl bg-blue-600 dark:bg-emerald-500 flex items-center justify-center text-slate-900 dark:text-white font-black text-xl shadow-lg">
           {name[0]}
         </div>
         <div>
-          <h3 className="font-bold text-xl text-white tracking-tight">{name}</h3>
+          <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">{name}</h3>
           <p className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{role}</p>
         </div>
       </div>
-      <p className="text-sm text-gray-400 leading-relaxed">{bio}</p>
+      <p className="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">{bio}</p>
     </div>
   );
 }
