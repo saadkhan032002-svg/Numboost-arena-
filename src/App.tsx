@@ -109,7 +109,8 @@ const SUB_OPS = [
 ];
 
 export default function App() {
-  const { user, profile, logout, addPoints, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, updateProfileData, loading } = useAuth();
+  const cleanError = (err: string) => err ? err.replace(/Firebase:?\s*/ig, '').replace(/\((auth|firestore)\/[^)]+\)\.?/ig, '').trim() || 'An unexpected error occurred.' : '';
+  const { user, profile, logout, addPoints, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, updateProfileData, resetPassword, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>('home');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -527,7 +528,14 @@ export default function App() {
        const userAns = finalState.answers[i];
        const isCorrect = userAns !== undefined && userAns !== 'skipped' && String(userAns).trim() === String(q.question.answer).trim();
        if (isCorrect) {
-          computedPoints += (q.question.points || 1);
+          let pts = q.question.points || 1;
+          if (q.question.category && q.question.category.toLowerCase().includes('fraction')) {
+             pts *= 2;
+          }
+          if (!q.question.category && finalState.categories.some(c => c.name.toLowerCase().includes('fraction'))) { // edge case where category is absent but setup uses fraction
+             pts *= 2; 
+          }
+          computedPoints += pts;
        }
     });
 
@@ -537,7 +545,7 @@ export default function App() {
        const res = await addPoints(computedPoints);
        setEarnedMPoints(res.mPointsEarned);
     } else {
-       setEarnedMPoints(computedPoints > 0 ? (computedPoints / 100) : 0);
+       setEarnedMPoints(computedPoints > 0 ? computedPoints : 0);
     }
     setScreen('results');
     setIsProcessing(false);
@@ -797,8 +805,8 @@ export default function App() {
                 <div className="space-y-4">
                   <button
                     onClick={async () => {
-                      await signInWithGoogle();
-                      setShowAuthModal(false);
+                      setAuthError('');
+                      try { await signInWithGoogle(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); }
                     }}
                     className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-white rounded-2xl font-bold transition-all border border-slate-900/10 dark:border-white/5 shadow-sm active:scale-95"
                   >
@@ -823,8 +831,8 @@ export default function App() {
                   </div>
                   <button
                     onClick={async () => {
-                      await signInAsGuest();
-                      setShowAuthModal(false);
+                      setAuthError('');
+                      try { await signInAsGuest(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); }
                     }}
                     className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-gray-100 rounded-2xl font-bold transition-all shadow-md active:scale-95"
                   >
@@ -866,18 +874,37 @@ export default function App() {
                         } else {
                           await signInWithEmail(emailInput, passInput);
                         }
+                        setScreen('home');
                         setShowAuthModal(false);
-                      } catch (err) {
-                        setAuthError(err.message);
+                      } catch (err: any) {
+                        setAuthError(cleanError(err.message));
                       }
                     }}
                     className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95"
                   >
                     {isSignUp ? 'Sign Up' : 'Sign In'}
                   </button>
+                  
+                  {!isSignUp && (
+                    <button
+                      onClick={async () => {
+                        if (!emailInput) { setAuthError('Enter your email first to reset password'); return; }
+                        try {
+                          await resetPassword(emailInput);
+                          setAuthError('Password reset email sent! Check your inbox.');
+                        } catch (err: any) {
+                          setAuthError(cleanError(err.message));
+                        }
+                      }}
+                      className="w-full text-blue-500 hover:text-blue-600 font-bold transition-colors text-xs text-right"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+
                   <div className="pt-2 flex justify-between items-center">
-                    <button onClick={() => setEmailMode(false)} className="text-slate-500 dark:text-gray-400 text-sm hover:text-slate-900 dark:hover:text-white font-bold transition-colors">← Back</button>
-                    <button onClick={() => setIsSignUp(!isSignUp)} className="text-blue-500 text-sm font-bold hover:text-blue-400 transition-colors">
+                    <button onClick={() => { setEmailMode(false); setAuthError(''); }} className="text-slate-500 dark:text-gray-400 text-sm hover:text-slate-900 dark:hover:text-white font-bold transition-colors">← Back</button>
+                    <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); }} className="text-blue-500 text-sm font-bold hover:text-blue-400 transition-colors">
                       {isSignUp ? 'Already have an account?' : 'Create an account'}
                     </button>
                   </div>
@@ -1053,7 +1080,7 @@ export default function App() {
                         }
                       }}
                       className={`col-span-2 md:col-span-3 p-4 rounded-xl border text-[13px] md:text-base uppercase tracking-widest font-black transition-all relative shadow-sm ${
-                        customConfig['Random'] ? 'bg-purple-600 text-white border-purple-500 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-purple-600 dark:text-purple-400 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-50 dark:hover:bg-purple-500/10'
+                        customConfig['Random'] ? 'bg-purple-600 text-white border-purple-500 shadow-lg' : 'bg-slate-100 text-purple-600 border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-50'
                       }`}
                     >
                       <div className="flex w-full items-center justify-center gap-2">
@@ -1254,12 +1281,12 @@ export default function App() {
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => startPractice('Random')}
-                  className="w-full h-full p-5 bg-purple-50 dark:bg-gradient-to-br dark:from-purple-900/40 dark:to-[#0A0F16] border border-purple-200 dark:border-purple-500/20 rounded-2xl text-sm font-bold text-slate-700 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:border-purple-300 dark:hover:border-purple-500/40 hover:shadow-sm transition-all flex items-center justify-between overflow-hidden relative peer"
+                  className="w-full h-full p-5 bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/20 rounded-2xl border-none flex items-center justify-between text-sm font-bold transition-all overflow-hidden relative peer"
                 >
                   <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="flex items-center gap-3 relative z-10 w-full justify-center">
-                     <span className="font-extrabold tracking-widest uppercase text-purple-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-purple-400 dark:to-indigo-400">RANDOM (ALL)</span>
-                     <Zap className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-purple-600 dark:text-purple-400 absolute right-0" />
+                     <span className="font-extrabold tracking-widest uppercase text-white drop-shadow-md">RANDOM (ALL)</span>
+                     <Zap className="w-5 h-5 text-purple-200 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 absolute right-0" />
                   </div>
                 </motion.button>
                   <div className="absolute -top-3 -right-2 z-50">
@@ -1434,7 +1461,7 @@ export default function App() {
                       }];
                       initGameState(finalCategories, practiceConfig.volume || 10, false);
                     }}
-                    className="w-full mt-6 bg-gradient-to-r from-gray-700 to-gray-600 text-slate-900 dark:text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:scale-[1.02] transition-all shadow-sm active:scale-95 disabled:opacity-30 border border-slate-200 dark:border-white/10"
+                    className="w-full mt-6 bg-blue-600 text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:bg-blue-500 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-30 border border-blue-500/20"
                   >
                     Start Practice
                   </button>
@@ -1879,7 +1906,14 @@ export default function App() {
                      <LogIn className="w-5 h-5" /> Sign In
                    </button>
                    <button 
-                     onClick={() => signInAsGuest()}
+                     onClick={async () => {
+                       try {
+                         await signInAsGuest();
+                         setScreen('home');
+                       } catch(e: any) {
+                         setAuthError(cleanError(e.message));
+                       }
+                     }}
                      className="w-full bg-transparent border border-slate-300 dark:border-white/20 text-slate-900 dark:text-white py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-slate-100 dark:bg-white/5 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
                    >
                      Play as Guest
@@ -1965,12 +1999,16 @@ export default function App() {
                    </div>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                    <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5">
-                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Weekly Rank</span>
+                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Current Week</span>
                      <MPointBadge points={profile?.weeklyMPoints || 0} size="md" />
                    </div>
                    <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5">
+                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Previous Week</span>
+                     <MPointBadge points={(profile as any)?.previousWeeklyMPoints || 0} size="md" />
+                   </div>
+                   <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5 col-span-2 md:col-span-1">
                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Total Extracted</span>
                      <MPointBadge points={profile?.totalMPoints || 0} size="md" />
                    </div>
@@ -2044,7 +2082,7 @@ export default function App() {
                       <h4 className="font-bold text-blue-400 uppercase tracking-widest mb-2 text-xs">How Points Work</h4>
                       <ul className="text-slate-700 dark:text-gray-300 space-y-2 list-disc pl-4 text-xs font-medium">
                         <li>Beginner: 1 pt / Table, Root..: 2 pts / Adv: 3 pts / Exp: 4 pts</li>
-                        <li>1 <b>M-Point</b> (Leaderboard Point) = 100 points</li>
+                        <li>1 <b>Point</b> = 1 M-Point (Leaderboard Point)</li>
                         <li>Leaderboard resets every week on Sunday (UTC).</li>
                         <li>Last week's top players retain their position but start with 0 M-Points until they play.</li>
                         <li>Guests do not appear on the leaderboard.</li>
