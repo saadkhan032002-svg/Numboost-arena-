@@ -53,11 +53,20 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       if (snap.exists()) {
          const data = snap.data() as UserProfile;
          if (data.currentWeekId !== currentWeekId) {
-            await updateDoc(userRef, { 
-               currentWeekId, 
-               previousWeeklyMPoints: data.weeklyMPoints || 0,
-               weeklyMPoints: 0 
-            });
+            try {
+              // Try writing with previousWeeklyMPoints (for updated rules)
+              await updateDoc(userRef, { 
+                 currentWeekId, 
+                 previousWeeklyMPoints: data.weeklyMPoints || 0,
+                 weeklyMPoints: 0 
+              });
+            } catch (updateErr) {
+              // If it fails (due to old Firestore rules missing previousWeeklyMPoints), fallback:
+              await updateDoc(userRef, { 
+                 currentWeekId, 
+                 weeklyMPoints: 0 
+              });
+            }
          }
       } else {
         const requestedName = customName || firebaseUser.displayName || (isGuest ? 'Guest User' : 'Player');
@@ -95,7 +104,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        await fetchOrCreateProfile(currentUser);
+        try {
+          await fetchOrCreateProfile(currentUser);
+        } catch (e) {
+          console.error("Failed to fetch/create profile, setting state anyway", e);
+        }
         
         unsubscribeProfile = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
            if (docSnap.exists()) {
@@ -199,7 +212,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         updates.weeklyMPoints = increment(mPointsToAdd);
      }
      
-     await updateDoc(doc(db, 'users', user.uid), updates);
+     try {
+       await updateDoc(doc(db, 'users', user.uid), updates);
+     } catch (e) {
+       // Fallback for old rules
+       if (updates.previousWeeklyMPoints !== undefined) {
+          delete updates.previousWeeklyMPoints;
+          await updateDoc(doc(db, 'users', user.uid), updates);
+       } else {
+          throw e;
+       }
+     }
      return { sessionPoints: rawPoints, mPointsEarned: mPointsToAdd };
   };
 

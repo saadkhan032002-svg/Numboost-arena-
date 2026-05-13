@@ -542,8 +542,13 @@ export default function App() {
     finalState.sessionPoints = computedPoints;
     setGameState(finalState);
     if (computedPoints > 0 && profile && !profile.isGuest) {
-       const res = await addPoints(computedPoints);
-       setEarnedMPoints(res.mPointsEarned);
+       try {
+         const res = await addPoints(computedPoints);
+         setEarnedMPoints(res.mPointsEarned);
+       } catch (err) {
+         console.error('Failed to add points', err);
+         setEarnedMPoints(0);
+       }
     } else {
        setEarnedMPoints(computedPoints > 0 ? computedPoints : 0);
     }
@@ -1970,6 +1975,12 @@ export default function App() {
                           onClick={async () => {
                             setIsSavingProfile(true);
                             try {
+                              if (editProfileImage && editProfileImage.length > 500000) {
+                                setToastMessage('Image is too large. Please select a smaller photo.');
+                                setIsSavingProfile(false);
+                                setTimeout(() => setToastMessage(''), 4000);
+                                return;
+                              }
                               await updateProfileData({ displayName: editProfileName, photoURL: editProfileImage || '' });
                               setToastMessage('Profile updated!');
                             } catch (e: any) {
@@ -2099,8 +2110,10 @@ export default function App() {
             </h2>
 
             <div className="bg-white dark:bg-[#111827] border border-amber-500/30 rounded-[32px] p-6 md:p-8 space-y-4 shadow-sm relative overflow-hidden">
-               {leaderboard.length === 0 ? (
+               {isFetchingLB ? (
                   <div className="text-center text-slate-500 dark:text-gray-500 py-10">Loading arena champions...</div>
+               ) : leaderboard.length === 0 ? (
+                  <div className="text-center text-slate-500 dark:text-gray-500 py-10">No arena champions yet.</div>
                ) : (
                   <div className="flex flex-col gap-3">
                     {leaderboard.slice(0, 10).map((u, i) => {
