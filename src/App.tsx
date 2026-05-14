@@ -43,7 +43,7 @@ type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'resu
 
 const MPointBadge = ({ points, size = 'md', className = '' }: { points: number, size?: 'sm' | 'md' | 'lg', className?: string }) => {
   const sizeClasses = {
-    sm: 'w-5 h-5 text-[10px]',
+    sm: 'w-5 h-5 text-xs',
     md: 'w-6 h-6 text-xs',
     lg: 'w-8 h-8 text-sm'
   };
@@ -300,7 +300,7 @@ export default function App() {
             <Target className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-800 dark:text-gray-200 leading-tight">Input<br/>Mode</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-gray-200 leading-tight">Input<br/>Mode</h3>
             <p className="text-[8px] uppercase tracking-wider text-slate-500 dark:text-gray-500 mt-0.5">How to answer</p>
           </div>
         </div>
@@ -319,13 +319,13 @@ export default function App() {
         
         <button 
           onClick={() => setGameMode('mcq')}
-          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-slate-200 dark:border-white/10 ${gameMode === 'mcq' ? 'text-slate-900 dark:text-gray-100' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-xs uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-slate-200 dark:border-white/10 ${gameMode === 'mcq' ? 'text-slate-900 dark:text-gray-100' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
         >
           Options
         </button>
         <button 
           onClick={() => setGameMode('manual')}
-          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-slate-900 dark:text-gray-100' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-xs uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-slate-900 dark:text-gray-100' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
         >
           Manual 
           <div 
@@ -337,7 +337,7 @@ export default function App() {
         </button>
         
         {showManualInfo && (
-          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] text-[10px] text-slate-700 dark:text-gray-300 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
+          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] text-xs text-slate-700 dark:text-gray-300 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
             Type exact answers manually using keyboard. Perfect for rigorous training.
           </div>
         )}
@@ -763,14 +763,14 @@ export default function App() {
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
-        className="absolute top-6 left-5 md:top-8 md:left-12 z-[100] flex items-center"
+        className="absolute top-4 left-5 md:top-8 md:left-12 z-[100] flex items-center"
       >
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-3 md:p-4 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:bg-[#0A0F16] dark:hover:bg-white dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:text-gray-100 dark:hover:text-white transition-all active:scale-95"
+          className="p-2.5 md:p-4 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:bg-[#0A0F16] dark:hover:bg-white dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:text-gray-100 dark:hover:text-white transition-all active:scale-95"
           aria-label="Toggle Theme"
         >
-          {theme === 'dark' ? <Sun className="w-5 h-5 md:w-6 md:h-6 text-emerald-500" /> : <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />}
+          {theme === 'dark' ? <Sun className="w-5 h-5 md:w-6 md:h-6 text-[#10b981]" /> : <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />}
         </button>
       </motion.div>
       )}
@@ -960,13 +960,13 @@ export default function App() {
                 className="flex items-center justify-center md:justify-start gap-3 mb-3 md:mb-6"
               >
                 <Zap className="w-5 h-5 md:w-6 md:h-6 text-[#10b981] fill-[#10b981]" />
-                <span className="text-[#10b981] text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase">Arena Engine</span>
+                <span className="text-[#10b981] text-xs md:text-sm font-bold tracking-[0.2em] uppercase">Arena Engine</span>
               </motion.div>
               <motion.h1 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="font-display text-3xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-3 md:mb-6 text-slate-900 dark:text-white uppercase"
+                className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.85] mb-3 md:mb-6 text-slate-900 dark:text-white uppercase"
               >
                 NUMBOOST<br />ARENA
               </motion.h1>
@@ -974,7 +974,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-slate-600 dark:text-gray-400 text-[10px] md:text-sm tracking-widest uppercase mb-6 md:mb-12 max-w-sm mx-auto md:mx-0"
+                className="text-slate-600 dark:text-gray-400 text-xs md:text-sm tracking-widest uppercase mb-6 md:mb-12 max-w-sm mx-auto md:mx-0"
               >
                 Master speed and accuracy with adaptive challenges. Designed for flow state.
               </motion.p>
@@ -1015,37 +1015,37 @@ export default function App() {
             </h2>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <button onClick={() => setScreen('profile')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-slate-700 dark:text-gray-300">
-                  <UserIcon className="w-5 h-5" />
+              <button onClick={() => setScreen('profile')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-slate-700 dark:text-gray-300">
+                  <UserIcon className="w-6 h-6" />
                 </div>
-                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Profile</span>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-sm">Profile</span>
               </button>
 
-              <button onClick={() => setScreen('leaderboard')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-emerald-500">
-                  <Trophy className="w-5 h-5" />
+              <button onClick={() => setScreen('leaderboard')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-emerald-500">
+                  <Trophy className="w-6 h-6" />
                 </div>
-                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Leaderboard</span>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-sm">Leaderboard</span>
               </button>
 
-              <button onClick={() => setScreen('about')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
-                  <Info className="w-5 h-5" />
+              <button onClick={() => setScreen('about')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
+                  <Info className="w-6 h-6" />
                 </div>
-                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">About</span>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-sm">About</span>
               </button>
               
-              <button onClick={() => handleDownloadApp()} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
-                  <Download className="w-5 h-5" />
+              <button onClick={() => handleDownloadApp()} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
+                  <Download className="w-6 h-6" />
                 </div>
-                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Install App</span>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-sm">Install App</span>
               </button>
 
-              <button onClick={() => handleGlobalShare()} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-purple-500">
-                  <Share2 className="w-8 h-8" />
+              <button onClick={() => handleGlobalShare()} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-purple-500">
+                  <Share2 className="w-6 h-6" />
                 </div>
                 <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Share</span>
               </button>
@@ -1098,11 +1098,11 @@ export default function App() {
                       
                       <div 
                         onClick={(e) => { e.stopPropagation(); setShowCustomRandomInfo(!showCustomRandomInfo); }}
-                        className="info-popup-trigger absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border border-current opacity-70 hover:opacity-100 flex items-center justify-center text-[10px] font-black cursor-pointer"
+                        className="info-popup-trigger absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border border-current opacity-70 hover:opacity-100 flex items-center justify-center text-xs font-black cursor-pointer"
                       >
                         !
                         {showCustomRandomInfo && (
-                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[10px] font-medium text-slate-700 dark:text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
+                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-700 dark:text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
                             Includes questions from every arithmetic category.
                           </div>
                         )}
@@ -1130,7 +1130,7 @@ export default function App() {
                     {customUseTimer && (
                       <div className="flex gap-4">
                         <div className="flex-1">
-                          <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Hours</label>
+                          <label className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Hours</label>
                           <input 
                             type="number" 
                             min="0" max="3"
@@ -1145,7 +1145,7 @@ export default function App() {
                           />
                         </div>
                         <div className="flex-1">
-                          <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Minutes</label>
+                          <label className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Minutes</label>
                           <input 
                             type="number" 
                             min="0" max="59"
@@ -1178,7 +1178,7 @@ export default function App() {
                             {isRange ? (
                               <div className="flex gap-4">
                                 <div className="flex-1">
-                                  <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Start</label>
+                                  <label className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Start</label>
                                   <input type="number" 
                                     className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-900 dark:text-gray-100 font-bold outline-none focus:border-[#10b981]/50 transition-colors" 
                                     value={config.customRange?.start === '' ? '' : (config.customRange?.start ?? '')}
@@ -1189,7 +1189,7 @@ export default function App() {
                                   />
                                 </div>
                                 <div className="flex-1">
-                                  <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">End</label>
+                                  <label className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">End</label>
                                   <input type="number" 
                                     className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-900 dark:text-gray-100 font-bold outline-none focus:border-[#10b981]/50 transition-colors" 
                                     value={config.customRange?.end === '' ? '' : (config.customRange?.end ?? '')}
@@ -1301,11 +1301,11 @@ export default function App() {
                   <div className="absolute -top-3 -right-2 z-50">
                   <div 
                     onClick={(e) => { e.stopPropagation(); setShowRandomAllInfo(!showRandomAllInfo); }}
-                    className="info-popup-trigger w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:text-gray-100 hover:bg-slate-100 dark:bg-[#111827]/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
+                    className="info-popup-trigger w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 flex items-center justify-center text-xs font-black text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:text-gray-100 hover:bg-slate-100 dark:bg-[#111827]/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
                   >
                     !
                     {showRandomAllInfo && (
-                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
+                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-xs text-slate-700 dark:text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
                         Practice a mix of questions from all available categories.
                       </div>
                     )}
@@ -1354,7 +1354,7 @@ export default function App() {
             <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-slate-900 dark:text-gray-100">
               {practiceSetupStep === 1 ? 'Select Level' : 'Set Volume'}
             </h2>
-            <p className="text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-white/10 w-fit mx-auto px-3 py-1 rounded-full text-center text-[10px] md:text-xs tracking-widest font-bold uppercase mb-8">
+            <p className="text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-white/10 w-fit mx-auto px-3 py-1 rounded-full text-center text-xs md:text-xs tracking-widest font-bold uppercase mb-8">
                {getCatLabel(practiceCat)}
             </p>
             
@@ -1366,14 +1366,14 @@ export default function App() {
                       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-gray-300">Number Range</h3>
                       <button 
                         onClick={() => setShowRangeInfo(!showRangeInfo)}
-                        className="info-popup-trigger flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors"
+                        className="info-popup-trigger flex items-center gap-1.5 text-xs uppercase tracking-wide text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300 transition-colors"
                       >
                         <div className="w-4 h-4 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700">i</div>
                         <span>Info</span>
                       </button>
                       
                       {showRangeInfo && (
-                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-slate-200 dark:border-white/10 text-[11px] text-slate-600 dark:text-gray-400 rounded-lg text-center leading-relaxed mt-2">
+                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-slate-200 dark:border-white/10 text-xs text-slate-600 dark:text-gray-400 rounded-lg text-center leading-relaxed mt-2">
                           Define the start and end values for the numbers. Questions will be generated exclusively within this specified range.
                         </div>
                       )}
@@ -1381,7 +1381,7 @@ export default function App() {
                     
                     <div className="flex gap-3">
                       <div className="flex-1">
-                        <label className="text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
+                        <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase ml-1 mb-1 block">Start Value</label>
                         <input 
                           type="number" 
                           value={practiceConfig.range.start === '' ? '' : (practiceConfig.range.start ?? '')}
@@ -1394,7 +1394,7 @@ export default function App() {
                         />
                       </div>
                       <div className="flex-1">
-                        <label className="text-[11px] font-bold text-slate-500 dark:text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
+                        <label className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase ml-1 mb-1 block">End Value</label>
                         <input 
                           type="number" 
                           value={practiceConfig.range.end === '' ? '' : (practiceConfig.range.end ?? '')}
@@ -1489,7 +1489,7 @@ export default function App() {
           >
             <header className="flex justify-between items-center mb-10 w-full z-20">
               <div className="flex flex-col flex-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Difficulty Level</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-blue-400">Difficulty Level</span>
                 <span className="text-lg md:text-xl font-bold text-slate-900 dark:text-gray-100">
                   {getCatLabel(currentQuestion.category)} {gameState.categories.find(c => c.name === currentQuestion.category)?.difficulty ? diffEmojis[gameState.categories.find(c => c.name === currentQuestion.category)!.difficulty!] : `[${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.start || ''}-${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.end || ''}]`}
                 </span>
@@ -1497,7 +1497,7 @@ export default function App() {
               
               {timeRemaining !== null && (
                  <div className="flex flex-col items-center flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Time Limit</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-emerald-500">Time Limit</span>
                     <span className="text-lg md:text-xl font-bold text-emerald-400 tabular-nums">
                        {String(Math.floor(timeRemaining / 3600)).padStart(2, '0')}:{String(Math.floor((timeRemaining % 3600) / 60)).padStart(2, '0')}:{String(timeRemaining % 60).padStart(2, '0')}
                     </span>
@@ -1546,7 +1546,7 @@ export default function App() {
                       }`}
                     >
                       {opt}
-                      <span className="hidden md:flex absolute top-3 left-4 text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-widest group-hover:text-blue-300">
+                      <span className="hidden md:flex absolute top-3 left-4 text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-widest group-hover:text-blue-300">
                         [{i + 1}]
                       </span>
                     </motion.button>
@@ -1602,7 +1602,7 @@ export default function App() {
                      layout
                      onClick={() => {if (gameState.currentIndex > 0) goToQuestion(gameState.currentIndex - 1);}}
                      disabled={gameState.currentIndex === 0}
-                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-xs md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
                      style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
                    >
                      <motion.span layout="position">
@@ -1632,7 +1632,7 @@ export default function App() {
                         skipQuestion();
                         if (gameState.currentIndex === gameState.totalQuestions - 1) submitTest();
                      }}
-                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-pink-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-pink-400 font-bold uppercase tracking-widest text-xs md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
                      style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
                    >
                      <motion.span layout="position">
@@ -1780,24 +1780,24 @@ export default function App() {
 
                   <div className="flex-1 space-y-4 mb-16 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="flex justify-between items-center mb-4 px-2">
-                      <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400">Detailed Analysis</h3>
+                      <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-blue-400">Detailed Analysis</h3>
                     </div>
                     {derivedHistory.map((h, i) => (
                       <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-white dark:bg-[#111827] bg-white dark:bg-[#111827] border-[#10b981]/30 border-l-4 border-l-emerald-500 shadow-sm' : 'bg-white dark:bg-[#111827] bg-white dark:bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-sm'}`}>
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
+                          <span className="text-xs font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
                           <span className="text-xl md:text-2xl font-black text-slate-900 dark:text-gray-100">{h.question.expression}</span>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right">
-                            <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Your Answer</div>
+                            <div className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Your Answer</div>
                             <div className={`font-black text-lg ${h.isCorrect ? 'text-[#10b981]' : 'text-red-400 opacity-80'}`}>
                               {h.userSelection === 'skipped' ? 'Skipped' : h.userSelection}
                             </div>
                           </div>
                           {!h.isCorrect && (
                             <div className="text-right pl-6 border-l w-24 border-slate-200 dark:border-white/10">
-                              <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Correct</div>
+                              <div className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Correct</div>
                               <div className="font-black text-[#10b981] text-lg">{h.question.answer}</div>
                             </div>
                           )}
@@ -1812,7 +1812,7 @@ export default function App() {
                       className="flex-1 bg-[#10b981] dark:bg-[#10b981] text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-sm dark:shadow-sm md:shadow-sm group relative cursor-pointer"
                     >
                       Restart <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-slate-900 dark:text-gray-100/50 tracking-widest uppercase">
+                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-xs text-slate-900 dark:text-gray-100/50 tracking-widest uppercase">
                         Press [Enter]
                       </span>
                     </button>
@@ -1850,7 +1850,7 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
               <DevCard name="ABDUL HAQUE" role="Design Lead & Architect" bio="Passionate developer creating innovative educational tools for the modern age." />
               <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full text-center py-4 md:py-0 pointer-events-none z-10">
-                 <span className="bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 px-4 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] text-slate-500 text-slate-600 dark:text-gray-400 shadow-md whitespace-nowrap">
+                 <span className="bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 px-4 py-2 rounded-full text-xs font-bold tracking-[0.2em] text-slate-500 text-slate-600 dark:text-gray-400 shadow-md whitespace-nowrap">
                    🤫 BOTH DEVELOPERS ARE SAME PERSON 🤐
                  </span>
               </div>
@@ -1965,7 +1965,7 @@ export default function App() {
                    
                    <div className="flex-1 w-full space-y-4">
                      <div>
-                       <label className="text-[10px] uppercase tracking-widest text-[#10b981] font-bold ml-4">Display Name</label>
+                       <label className="text-xs uppercase tracking-widest text-[#10b981] font-bold ml-4">Display Name</label>
                        <input 
                          type="text" 
                          value={editProfileName}
@@ -2016,15 +2016,15 @@ export default function App() {
 
                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                    <div className="bg-slate-100 dark:bg-[#111827]/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10">
-                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Current Week</span>
+                     <span className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Current Week</span>
                      <MPointBadge points={profile?.weeklyMPoints || 0} size="md" />
                    </div>
                    <div className="bg-slate-100 dark:bg-[#111827]/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10">
-                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Previous Week</span>
+                     <span className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Previous Week</span>
                      <MPointBadge points={(profile as any)?.previousWeeklyMPoints || 0} size="md" />
                    </div>
                    <div className="bg-slate-100 dark:bg-[#111827]/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 col-span-2 md:col-span-1">
-                     <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Total Extracted</span>
+                     <span className="text-xs uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Total Extracted</span>
                      <MPointBadge points={profile?.totalMPoints || 0} size="md" />
                    </div>
                  </div>
@@ -2285,8 +2285,8 @@ function MenuCard({ icon, title, description, onClick, accent }: { icon: React.R
         {icon}
       </div>
       <div className="flex-1 z-10">
-        <h3 className="font-bold text-base leading-tight text-slate-900 dark:text-gray-100 transition-colors">{title}</h3>
-        <p className="text-slate-500 dark:text-gray-400 text-xs mt-1">{description}</p>
+        <h3 className="font-bold text-lg md:text-xl leading-tight text-slate-900 dark:text-gray-100 transition-colors">{title}</h3>
+        <p className="text-slate-500 dark:text-gray-400 text-sm md:text-base mt-1">{description}</p>
       </div>
       <ChevronRight className="w-5 h-5 text-slate-400 dark:text-gray-500 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-1 transition-all z-10" />
     </motion.button>
@@ -2346,7 +2346,7 @@ function ResultMetric({ label, value, icon }: { label: string, value: string, ic
     <div className="p-5 bg-slate-100 dark:bg-[#111827]/5 rounded-2xl border border-slate-200 dark:border-white/10 backdrop-blur-md hover:bg-slate-100 dark:bg-[#111827]/10 transition-colors">
       <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-gray-400">
         {icon}
-        <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+        <span className="text-xs font-bold uppercase tracking-widest">{label}</span>
       </div>
       <div className="text-2xl font-black tabular-nums text-slate-900 dark:text-gray-100">{value}</div>
     </div>
@@ -2362,7 +2362,7 @@ function DevCard({ name, role, bio }: { name: string, role: string, bio: string 
         </div>
         <div>
           <h3 className="font-bold text-xl text-slate-900 dark:text-gray-100 tracking-tight">{name}</h3>
-          <p className="text-[#10b981] font-bold text-[10px] uppercase tracking-widest">{role}</p>
+          <p className="text-[#10b981] font-bold text-xs uppercase tracking-widest">{role}</p>
         </div>
       </div>
       <p className="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">{bio}</p>
