@@ -39,7 +39,7 @@ import { jsPDF } from 'jspdf';
 import { playClick, playCorrect, playWrong, playNumpad } from './lib/audioEngine';
 import { useAuth, getCurrentWeekId } from './lib/AuthContext';
 
-type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'results' | 'custom' | 'about' | 'profile' | 'leaderboard';
+type Screen = 'home' | 'categories' | 'subcategories' | 'setup' | 'game' | 'results' | 'custom' | 'about' | 'profile' | 'leaderboard' | 'menu';
 
 const MPointBadge = ({ points, size = 'md', className = '' }: { points: number, size?: 'sm' | 'md' | 'lg', className?: string }) => {
   const sizeClasses = {
@@ -293,8 +293,8 @@ export default function App() {
   }, [screen, timeRemaining]);
 
   const InputToggle = () => (
-    <div className="bg-white dark:bg-[#111827]/80 backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-2xl mb-6 flex flex-row items-stretch shadow-xl w-full max-w-sm mx-auto">
-      <div className="w-[45%] flex flex-col justify-center p-3 border-r border-slate-200 dark:border-white/5">
+    <div className="bg-white dark:bg-[#111827] backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl mb-6 flex flex-row items-stretch shadow-xl w-full max-w-sm mx-auto">
+      <div className="w-[45%] flex flex-col justify-center p-3 border-r border-slate-200 dark:border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-blue-500/10 flex flex-shrink-0 items-center justify-center text-blue-400">
             <Target className="w-4 h-4" />
@@ -319,13 +319,13 @@ export default function App() {
         
         <button 
           onClick={() => setGameMode('mcq')}
-          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-slate-200 dark:border-white/5 ${gameMode === 'mcq' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center border-b border-slate-200 dark:border-white/10 ${gameMode === 'mcq' ? 'text-slate-900 dark:text-gray-100' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
         >
           Options
         </button>
         <button 
           onClick={() => setGameMode('manual')}
-          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
+          className={`relative z-10 w-full flex-1 min-h-[44px] text-[10px] uppercase tracking-widest font-bold transition-colors flex items-center justify-center gap-2 ${gameMode === 'manual' ? 'text-slate-900 dark:text-gray-100' : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:text-gray-300'}`}
         >
           Manual 
           <div 
@@ -337,7 +337,7 @@ export default function App() {
         </button>
         
         {showManualInfo && (
-          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-white dark:bg-[#0A0F16] text-[10px] text-slate-700 dark:text-gray-300 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
+          <div className="info-popup-content absolute top-full mt-2 right-0 w-48 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] text-[10px] text-slate-700 dark:text-gray-300 p-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl z-50 text-center normal-case tracking-normal">
             Type exact answers manually using keyboard. Perfect for rigorous training.
           </div>
         )}
@@ -751,9 +751,9 @@ export default function App() {
   }, [screen, isProcessing, options, gameMode, showSubcategoriesFor, manualInput, currentQuestion]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#0F1626] text-slate-900 dark:text-white font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#0F1626] text-slate-900 dark:text-gray-100 font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
       {/* Immersive Background Blur Elements - Global */}
-      <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
+      <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#10b981]/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-#FFD13B/10 dark:bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
 
       {/* Theme Toggle - Top Left */}
@@ -767,7 +767,7 @@ export default function App() {
       >
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-3 md:p-4 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95"
+          className="p-3 md:p-4 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:bg-[#0A0F16] dark:hover:bg-white dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:text-gray-100 dark:hover:text-white transition-all active:scale-95"
           aria-label="Toggle Theme"
         >
           {theme === 'dark' ? <Sun className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" /> : <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />}
@@ -792,7 +792,7 @@ export default function App() {
             >
               <button 
                 onClick={() => setShowAuthModal(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-gray-200 transition-colors"
+                className="absolute top-4 right-4 text-slate-500 dark:text-gray-500 hover:text-slate-600 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                 aria-label="Close auth modal"
               >
                 <XCircle className="w-6 h-6" />
@@ -802,7 +802,7 @@ export default function App() {
                 <div className="w-20 h-20 bg-gradient-to-tr from-blue-500 to-emerald-400 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20 mb-6">
                   <Zap className="w-10 h-10 text-white" />
                 </div>
-                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Welcome!</h2>
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-gray-100 mb-2">Welcome!</h2>
                 <p className="text-sm text-slate-600 dark:text-gray-400">Sign in to track progress and climb the leaderboard or play as a guest.</p>
               </div>
 
@@ -813,7 +813,7 @@ export default function App() {
                       setAuthError('');
                       try { await signInWithGoogle(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); }
                     }}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-white rounded-2xl font-bold transition-all border border-slate-900/10 dark:border-white/5 shadow-sm active:scale-95"
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-gray-100 rounded-2xl font-bold transition-all border border-slate-900/10 border-slate-200 dark:border-white/10 shadow-sm active:scale-95"
                   >
                     <svg className="w-6 h-6" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -825,7 +825,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setEmailMode(true)}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-white rounded-2xl font-bold transition-all border border-slate-900/10 dark:border-white/5 shadow-sm active:scale-95"
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-gray-100 rounded-2xl font-bold transition-all border border-slate-900/10 border-slate-200 dark:border-white/10 shadow-sm active:scale-95"
                   >
                     Continue with Email
                   </button>
@@ -839,7 +839,7 @@ export default function App() {
                       setAuthError('');
                       try { await signInAsGuest(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); }
                     }}
-                    className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-gray-100 rounded-2xl font-bold transition-all shadow-md active:scale-95"
+                    className="w-full py-4 bg-slate-900 dark:bg-white dark:bg-[#111827] text-white dark:text-slate-900 dark:text-gray-100 hover:bg-slate-800 dark:hover:bg-slate-100 dark:bg-gray-800 rounded-2xl font-bold transition-all shadow-md active:scale-95"
                   >
                     Play as Guest
                   </button>
@@ -853,7 +853,7 @@ export default function App() {
                       placeholder="Display Name" 
                       value={nameInput} 
                       onChange={(e) => setNameInput(e.target.value)}
-                      className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all font-bold"
+                      className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold"
                     />
                   )}
                   <input 
@@ -861,14 +861,14 @@ export default function App() {
                     placeholder="Email Address" 
                     value={emailInput} 
                     onChange={(e) => setEmailInput(e.target.value)}
-                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all font-bold"
+                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold"
                   />
                   <input 
                     type="password" 
                     placeholder="Password" 
                     value={passInput} 
                     onChange={(e) => setPassInput(e.target.value)}
-                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-blue-500 transition-all font-bold"
+                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold"
                   />
                   <button
                     onClick={async () => {
@@ -885,7 +885,7 @@ export default function App() {
                         setAuthError(cleanError(err.message));
                       }
                     }}
-                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95"
+                    className="w-full py-4 bg-[#10b981] hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95"
                   >
                     {isSignUp ? 'Sign Up' : 'Sign In'}
                   </button>
@@ -901,15 +901,15 @@ export default function App() {
                           setAuthError(cleanError(err.message));
                         }
                       }}
-                      className="w-full text-blue-500 hover:text-blue-600 font-bold transition-colors text-xs text-right"
+                      className="w-full text-[#10b981] hover:text-blue-600 font-bold transition-colors text-xs text-right"
                     >
                       Forgot password?
                     </button>
                   )}
 
                   <div className="pt-2 flex justify-between items-center">
-                    <button onClick={() => { setEmailMode(false); setAuthError(''); }} className="text-slate-500 dark:text-gray-400 text-sm hover:text-slate-900 dark:hover:text-white font-bold transition-colors">← Back</button>
-                    <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); }} className="text-blue-500 text-sm font-bold hover:text-blue-400 transition-colors">
+                    <button onClick={() => { setEmailMode(false); setAuthError(''); }} className="text-slate-500 text-slate-600 dark:text-gray-400 text-sm hover:text-slate-900 dark:text-gray-100 dark:hover:text-white font-bold transition-colors">← Back</button>
+                    <button onClick={() => { setIsSignUp(!isSignUp); setAuthError(''); }} className="text-[#10b981] text-sm font-bold hover:text-blue-400 transition-colors">
                       {isSignUp ? 'Already have an account?' : 'Create an account'}
                     </button>
                   </div>
@@ -926,9 +926,9 @@ export default function App() {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: 50, scale: 0.95 }}
             role="status"
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white dark:bg-[#111827] border border-emerald-500/30 text-slate-900 dark:text-white px-5 py-4 rounded-2xl text-sm font-medium shadow-sm z-[100] flex items-start gap-4 backdrop-blur-xl"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white dark:bg-[#111827] border border-[#10b981]/30 text-slate-900 dark:text-gray-100 px-5 py-4 rounded-2xl text-sm font-medium shadow-sm z-[100] flex items-start gap-4 backdrop-blur-xl"
           >
-            <Info className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-[#10b981] shrink-0 mt-0.5" />
             <span className="leading-relaxed">{toastMessage}</span>
           </motion.div>
         )}
@@ -940,66 +940,16 @@ export default function App() {
             key="home"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-6xl mx-auto px-5 lg:px-12 py-12 md:py-0 min-h-[100dvh] flex flex-col md:flex-row relative items-center justify-center gap-10 lg:gap-16"
+            className="min-h-[100dvh] bg-slate-50 dark:bg-[#0A0F16] w-full max-w-6xl mx-auto px-5 lg:px-12 py-12 md:py-0 flex flex-col md:flex-row relative items-center justify-center gap-10 lg:gap-16"
           >
             <div className="absolute top-6 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
               <button 
-                onClick={() => setShowMenu(!showMenu)}
+                onClick={() => setScreen('menu')}
                 aria-label="Open menu"
-                className="info-popup-trigger bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
+                className="bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
-              <AnimatePresence>
-                {showMenu && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    className="info-popup-content flex flex-col gap-2"
-                  >
-                    <button 
-                      onClick={() => { handleDownloadApp(); setShowMenu(false); }}
-                      aria-label="Install app"
-                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
-                    >
-                      <Download className="w-5 h-5" />
-                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Install</span>
-                    </button>
-                    <button 
-                      onClick={() => { handleGlobalShare(); setShowMenu(false); }}
-                      aria-label="Share"
-                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
-                    >
-                      <Share2 className="w-5 h-5" />
-                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Share</span>
-                    </button>
-                    <button 
-                      onClick={() => { setScreen('about'); setShowMenu(false); }}
-                      aria-label="About"
-                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
-                    >
-                      <Info className="w-5 h-5" />
-                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">About</span>
-                    </button>
-                    <button 
-                      onClick={() => { setScreen('leaderboard'); setShowMenu(false); }}
-                      aria-label="Leaderboard"
-                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
-                    >
-                      <Trophy className="w-5 h-5" />
-                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Leaderboard</span>
-                    </button>
-                    <button 
-                      onClick={() => { setScreen('profile'); setShowMenu(false); }}
-                      aria-label="Profile"
-                      className="bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm group relative"
-                    >
-                      <UserIcon className="w-5 h-5" />
-                      <span className="absolute right-12 bg-black text-[10px] uppercase tracking-widest px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Profile</span>
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
             
             <header className="w-full md:w-1/2 flex flex-col md:pr-10 lg:pr-16 text-center md:text-left mt-[10vh] md:mt-0">
@@ -1009,14 +959,14 @@ export default function App() {
                 transition={{ delay: 0.2 }}
                 className="flex items-center justify-center md:justify-start gap-3 mb-6"
               >
-                <Zap className="w-6 h-6 text-blue-500 fill-blue-500" />
-                <span className="text-sm font-bold tracking-[0.2em] uppercase text-blue-300">Arena Engine</span>
+                <Zap className="w-6 h-6 text-[#10b981] fill-[#10b981]" />
+                <span className="text-[#10b981] text-sm font-bold tracking-[0.2em] uppercase">Arena Engine</span>
               </motion.div>
               <motion.h1 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-[12vw] sm:text-7xl lg:text-8xl xl:text-9xl font-black tracking-tighter leading-[0.85] mb-6 text-slate-900 dark:text-white"
+                className="font-sans text-[12vw] sm:text-6xl lg:text-[5.5rem] xl:text-[6.5rem] font-black tracking-tighter leading-[0.9] mb-6 text-slate-900 dark:text-white"
               >
                 NUMBOOST<br />ARENA
               </motion.h1>
@@ -1024,7 +974,7 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-slate-600 dark:text-gray-400 text-base lg:text-lg leading-relaxed max-w-sm mx-auto md:mx-0"
+                className="text-slate-600 dark:text-gray-400 text-sm tracking-widest uppercase mb-12 max-w-sm mx-auto md:mx-0"
               >
                 Master speed and accuracy with adaptive challenges. Designed for flow state.
               </motion.p>
@@ -1049,6 +999,60 @@ export default function App() {
           </motion.div>
         )}
 
+        {screen === 'menu' && (
+          <motion.div 
+            key="menu"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.05 }}
+            className="w-full max-w-4xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
+          >
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:hover:bg-white dark:bg-[#111827]/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-gray-100 flex items-center gap-3">
+              Options
+            </h2>
+
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+              <button onClick={() => setScreen('profile')} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-slate-700 dark:text-gray-300">
+                  <UserIcon className="w-6 h-6" />
+                </div>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Profile</span>
+              </button>
+
+              <button onClick={() => setScreen('leaderboard')} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-amber-500">
+                  <Trophy className="w-8 h-8" />
+                </div>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Leaderboard</span>
+              </button>
+
+              <button onClick={() => setScreen('about')} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
+                  <Info className="w-8 h-8" />
+                </div>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">About</span>
+              </button>
+              
+              <button onClick={() => handleDownloadApp()} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
+                  <Download className="w-8 h-8" />
+                </div>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Install App</span>
+              </button>
+
+              <button onClick={() => handleGlobalShare()} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-purple-500">
+                  <Share2 className="w-8 h-8" />
+                </div>
+                <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Share</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         {screen === 'custom' && (
           <motion.div 
             key="custom"
@@ -1056,7 +1060,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -20 }}
             className="w-full max-w-4xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Custom<br />Challenge.</h2>
@@ -1071,7 +1075,7 @@ export default function App() {
                         key={pillar.id}
                         onClick={() => toggleCustomCategory(pillar.id)}
                         className={`p-3 rounded-xl border text-[13px] md:text-sm font-bold transition-all ${
-                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-[#FFD13B] dark:bg-blue-600 text-slate-900 font-bold dark:text-white border-blue-400 dark:border-blue-400 shadow-lg' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-white/10'
+                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-[#FFD13B] dark:bg-[#10b981] text-slate-900 dark:text-gray-100 font-bold dark:text-white border-blue-400 dark:border-blue-400 shadow-lg' : 'bg-slate-100 dark:bg-[#111827]/5 text-slate-600 dark:text-gray-400 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-[#111827]/10'
                         }`}
                       >
                         {pillar.label} {customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] && '✓'}
@@ -1098,7 +1102,7 @@ export default function App() {
                       >
                         !
                         {showCustomRandomInfo && (
-                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-white dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[10px] font-medium text-slate-700 dark:text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
+                          <div className="info-popup-content absolute bottom-full right-0 mb-3 w-48 p-3 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[10px] font-medium text-slate-700 dark:text-gray-300 rounded-lg shadow-xl z-30 normal-case tracking-normal">
                             Includes questions from every arithmetic category.
                           </div>
                         )}
@@ -1119,7 +1123,7 @@ export default function App() {
                           onChange={(e) => setCustomUseTimer(e.target.checked)}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-slate-100 dark:bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 hover:bg-slate-200 dark:bg-white/20"></div>
+                        <div className="w-11 h-6 bg-slate-100 dark:bg-[#111827]/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-[#111827] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 hover:bg-slate-200 dark:bg-[#111827]/20"></div>
                       </div>
                     </label>
                     
@@ -1137,7 +1141,7 @@ export default function App() {
                                if (val > 3) val = 3;
                                setCustomTimerHours(val || '');
                             }}
-                            className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
+                            className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-900 dark:text-gray-100 font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
                           />
                         </div>
                         <div className="flex-1">
@@ -1152,7 +1156,7 @@ export default function App() {
                                if (val > 59) val = 59;
                                setCustomTimerMinutes(val || '');
                             }}
-                            className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
+                            className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-900 dark:text-gray-100 font-bold outline-none focus:border-blue-500/50 transition-colors text-center" 
                           />
                         </div>
                       </div>
@@ -1164,19 +1168,19 @@ export default function App() {
               <div className="space-y-8 flex flex-col">
                 {Object.keys(customConfig).length > 0 ? (
                   <section>
-                    <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-400 mb-4 px-2">2. Difficulty Level</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-[#10b981] mb-4 px-2">2. Difficulty Level</h3>
                     <div className="space-y-3">
                       {Object.values(customConfig).map((config: ActiveCategory) => {
                         const isRange = ['Tables', 'Squares', 'Cubes', 'Roots'].includes(config.name);
                         return (
                           <div key={config.name} className="p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-xl">
-                            <div className="font-bold text-slate-900 dark:text-white mb-3 text-sm">{getCatLabel(config.name)}</div>
+                            <div className="font-bold text-slate-900 dark:text-gray-100 mb-3 text-sm">{getCatLabel(config.name)}</div>
                             {isRange ? (
                               <div className="flex gap-4">
                                 <div className="flex-1">
                                   <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">Start</label>
                                   <input type="number" 
-                                    className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
+                                    className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-900 dark:text-gray-100 font-bold outline-none focus:border-[#10b981]/50 transition-colors" 
                                     value={config.customRange?.start === '' ? '' : (config.customRange?.start ?? '')}
                                     onChange={e => {
                                       const val = parseInt(e.target.value);
@@ -1187,7 +1191,7 @@ export default function App() {
                                 <div className="flex-1">
                                   <label className="text-[11px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1 block">End</label>
                                   <input type="number" 
-                                    className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg p-2 text-slate-900 dark:text-white font-bold outline-none focus:border-emerald-500/50 transition-colors" 
+                                    className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-900 dark:text-gray-100 font-bold outline-none focus:border-[#10b981]/50 transition-colors" 
                                     value={config.customRange?.end === '' ? '' : (config.customRange?.end ?? '')}
                                     onChange={e => {
                                       const val = parseInt(e.target.value);
@@ -1203,7 +1207,7 @@ export default function App() {
                                     key={diff}
                                     onClick={() => updateCustomCategory(config.name, { difficulty: diff })}
                                     className={`flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-widest transition-all ${
-                                        config.difficulty === diff ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-inner' : 'bg-black/5 dark:bg-black/30 text-slate-500 dark:text-gray-500 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:border-white/20'
+                                        config.difficulty === diff ? 'bg-[#10b981]/20 text-[#10b981] border-[#10b981]/50 shadow-inner' : 'bg-black/5 dark:bg-black/30 text-slate-500 dark:text-gray-500 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:border-white/20'
                                     }`}
                                   >
                                     {diffEmojis[diff]}
@@ -1235,7 +1239,7 @@ export default function App() {
                         if (val > 180) val = 180;
                         setCustomVolume(val);
                       }}
-                      className="w-full bg-transparent text-3xl font-black text-slate-900 dark:text-white outline-none text-center p-3"
+                      className="w-full bg-transparent text-3xl font-black text-slate-900 dark:text-gray-100 outline-none text-center p-3"
                     />
                   </div>
                 </div>
@@ -1246,7 +1250,7 @@ export default function App() {
                   <button 
                     disabled={Object.keys(customConfig).length === 0 || !customVolume || isGeneratingPDF}
                     onClick={downloadCustomPDF}
-                    className="flex-1 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-slate-100 dark:bg-white/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
+                    className="flex-1 bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-slate-100 dark:bg-[#111827]/10 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-lg"
                   >
                     {isGeneratingPDF ? 'Generating...' : <><Download className="w-4 h-4" /> Export PDF</>}
                   </button>
@@ -1256,7 +1260,7 @@ export default function App() {
                     onClick={() => {
                       initGameState(Object.values(customConfig), customVolume, true);
                     }}
-                    className="flex-[2] bg-blue-600 dark:bg-emerald-500 text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-sm dark:shadow-sm md:shadow-sm dark:shadow-sm"
+                    className="flex-[2] bg-[#10b981] dark:bg-[#10b981] text-white py-4 md:py-5 rounded-full font-bold uppercase tracking-widest text-xs md:text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-sm dark:shadow-sm md:shadow-sm"
                   >
                     Start Custom Arena
                   </button>
@@ -1273,7 +1277,7 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-4xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-8">Choose Category</h2>
@@ -1297,11 +1301,11 @@ export default function App() {
                   <div className="absolute -top-3 -right-2 z-50">
                   <div 
                     onClick={(e) => { e.stopPropagation(); setShowRandomAllInfo(!showRandomAllInfo); }}
-                    className="info-popup-trigger w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:text-white hover:bg-slate-100 dark:bg-white/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
+                    className="info-popup-trigger w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] font-black text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:text-gray-100 hover:bg-slate-100 dark:bg-[#111827]/5 cursor-pointer shadow-md transition-all active:scale-90 relative"
                   >
                     !
                     {showRandomAllInfo && (
-                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-white dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
+                      <div className="info-popup-content absolute top-8 right-0 md:bottom-full md:top-auto md:mb-2 w-48 p-3 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16] border border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-gray-300 rounded-xl shadow-2xl z-50 font-sans pointer-events-none transition-all normal-case tracking-normal">
                         Practice a mix of questions from all available categories.
                       </div>
                     )}
@@ -1319,7 +1323,7 @@ export default function App() {
             animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, x: -20 }}
             className="w-full max-w-xl mx-auto px-6 py-12"
           >
-            <button onClick={() => setScreen('categories')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
+            <button onClick={() => setScreen('categories')} aria-label="Go back" className="mb-8 p-2 -ml-2 bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">Select Operation</h2>
@@ -1344,10 +1348,10 @@ export default function App() {
             <button onClick={() => {
               if (practiceSetupStep === 2) setPracticeSetupStep(1);
               else { setScreen(practiceCat.includes('-') ? 'subcategories' : 'categories'); setShowSubcategoriesFor(''); }
-            }} aria-label="Go back" className="mb-6 p-2 -ml-2 bg-slate-100 dark:bg-white/5 hover:bg-slate-100 dark:bg-white/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
+            }} aria-label="Go back" className="mb-6 p-2 -ml-2 bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full transition-all active:scale-90 text-slate-600 dark:text-gray-400">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-slate-900 dark:text-white">
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-center uppercase text-slate-900 dark:text-gray-100">
               {practiceSetupStep === 1 ? 'Select Level' : 'Set Volume'}
             </h2>
             <p className="text-slate-600 dark:text-gray-400 border border-slate-200 dark:border-white/10 w-fit mx-auto px-3 py-1 rounded-full text-center text-[10px] md:text-xs tracking-widest font-bold uppercase mb-8">
@@ -1357,7 +1361,7 @@ export default function App() {
             {practiceSetupStep === 1 && (
               <>
                 {['Tables', 'Squares', 'Cubes', 'Roots'].includes(practiceCat) ? (
-                  <div className="mb-6 space-y-4 bg-white dark:bg-[#111827]/80 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-2xl">
+                  <div className="mb-6 space-y-4 bg-white dark:bg-[#111827] backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xl">
                     <div className="flex flex-col items-center justify-center gap-2 mb-4">
                       <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-gray-300">Number Range</h3>
                       <button 
@@ -1369,7 +1373,7 @@ export default function App() {
                       </button>
                       
                       {showRangeInfo && (
-                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-slate-200 dark:border-white/5 text-[11px] text-slate-600 dark:text-gray-400 rounded-lg text-center leading-relaxed mt-2">
+                        <div className="info-popup-content w-full p-3 bg-gray-800/50 border border-slate-200 dark:border-white/10 text-[11px] text-slate-600 dark:text-gray-400 rounded-lg text-center leading-relaxed mt-2">
                           Define the start and end values for the numbers. Questions will be generated exclusively within this specified range.
                         </div>
                       )}
@@ -1385,7 +1389,7 @@ export default function App() {
                             const val = parseInt(e.target.value);
                             setPracticeConfig({...practiceConfig, range: {...practiceConfig.range, start: isNaN(val) ? '' : val}});
                           }}
-                          className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-slate-900 dark:text-white focus:border-gray-500 outline-none text-center font-bold"
+                          className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-slate-900 dark:text-gray-100 focus:border-gray-500 outline-none text-center font-bold"
                           placeholder="Ex: 1"
                         />
                       </div>
@@ -1398,7 +1402,7 @@ export default function App() {
                             const val = parseInt(e.target.value);
                             setPracticeConfig({...practiceConfig, range: {...practiceConfig.range, end: isNaN(val) ? '' : val}});
                           }}
-                          className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl p-3 text-slate-900 dark:text-white focus:border-gray-500 outline-none text-center font-bold"
+                          className="w-full bg-black/5 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-slate-900 dark:text-gray-100 focus:border-gray-500 outline-none text-center font-bold"
                           placeholder="Ex: 10"
                         />
                       </div>
@@ -1407,7 +1411,7 @@ export default function App() {
                     <button 
                       onClick={() => setPracticeSetupStep(2)}
                       disabled={practiceConfig.range.start === '' || practiceConfig.range.end === ''}
-                      className="w-full mt-4 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:bg-white/20 text-slate-900 dark:text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30"
+                      className="w-full mt-4 bg-slate-100 dark:bg-[#111827]/10 hover:bg-slate-200 dark:bg-[#111827]/20 text-slate-900 dark:text-gray-100 font-bold text-sm py-4 rounded-xl uppercase tracking-widest transition-all active:scale-95 disabled:opacity-30"
                     >
                       Continue
                     </button>
@@ -1432,7 +1436,7 @@ export default function App() {
 
             {practiceSetupStep === 2 && (
               <div className="mb-6">
-                <div className="bg-white dark:bg-[#111827]/80 backdrop-blur-md border border-slate-200 dark:border-white/5 rounded-2xl p-6 shadow-2xl">
+                <div className="bg-white dark:bg-[#111827] backdrop-blur-md border border-slate-200 dark:border-white/10 rounded-2xl p-6 shadow-2xl">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-gray-300 mb-4 text-center">Total Questions</h3>
                   <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-2xl p-2 flex items-center mb-6 shadow-inner">
                     <input 
@@ -1448,7 +1452,7 @@ export default function App() {
                         if (val > 100) val = 100;
                         setPracticeConfig({...practiceConfig, volume: val});
                       }}
-                      className="w-full bg-transparent text-3xl font-black text-slate-900 dark:text-white outline-none text-center p-3"
+                      className="w-full bg-transparent text-3xl font-black text-slate-900 dark:text-gray-100 outline-none text-center p-3"
                       placeholder="Enter volume (Max 100)"
                     />
                   </div>
@@ -1466,7 +1470,7 @@ export default function App() {
                       }];
                       initGameState(finalCategories, practiceConfig.volume || 10, false);
                     }}
-                    className="w-full mt-6 bg-blue-600 text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:bg-blue-500 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-30 border border-blue-500/20"
+                    className="w-full mt-6 bg-[#10b981] text-white font-bold text-sm py-4 rounded-xl uppercase tracking-widest hover:bg-blue-500 hover:scale-[1.02] transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-30 border border-blue-500/20"
                   >
                     Start Practice
                   </button>
@@ -1486,7 +1490,7 @@ export default function App() {
             <header className="flex justify-between items-center mb-10 w-full z-20">
               <div className="flex flex-col flex-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-blue-400">Difficulty Level</span>
-                <span className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">
+                <span className="text-lg md:text-xl font-bold text-slate-900 dark:text-gray-100">
                   {getCatLabel(currentQuestion.category)} {gameState.categories.find(c => c.name === currentQuestion.category)?.difficulty ? diffEmojis[gameState.categories.find(c => c.name === currentQuestion.category)!.difficulty!] : `[${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.start || ''}-${gameState.categories.find(c => c.name === currentQuestion.category)?.customRange?.end || ''}]`}
                 </span>
               </div>
@@ -1503,13 +1507,13 @@ export default function App() {
               <div className="flex flex-1 justify-end">
                 <button 
                   onClick={() => setShowQuestionGrid(true)}
-                  className="flex bg-slate-100 dark:bg-white/10 rounded-full px-4 py-2 backdrop-blur-md border border-slate-200 dark:border-white/5 shadow-sm text-emerald-400 hover:bg-slate-200 dark:bg-white/20 transition-all active:scale-95 cursor-pointer"
+                  className="flex bg-slate-100 dark:bg-[#111827]/10 rounded-full px-4 py-2 backdrop-blur-md border border-slate-200 dark:border-white/10 shadow-sm text-[#10b981] hover:bg-slate-200 dark:bg-[#111827]/20 transition-all active:scale-95 cursor-pointer"
                 >
                   <div className="flex flex-col items-end">
                       <span className="text-xs md:text-sm font-bold tracking-widest uppercase">
-                        Q {gameState.currentIndex + 1} <span className="text-emerald-400/50">/{gameState.totalQuestions}</span>
+                        Q {gameState.currentIndex + 1} <span className="text-[#10b981]/50">/{gameState.totalQuestions}</span>
                       </span>
-                      <span className="text-[8px] tracking-widest uppercase text-slate-900 dark:text-white/50">Tap to view</span>
+                      <span className="text-[8px] tracking-widest uppercase text-slate-900 dark:text-gray-100/50">Tap to view</span>
                   </div>
                 </button>
               </div>
@@ -1538,7 +1542,7 @@ export default function App() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleAnswer(opt)}
                       className={`relative group h-20 md:h-28 border rounded-3xl flex items-center justify-center text-3xl md:text-4xl font-bold transition-all active:scale-95 disabled:opacity-50 overflow-hidden ${
-                         gameState.isTestMode && gameState.answers[gameState.currentIndex] === String(opt) ? 'bg-blue-600 border-blue-400 text-slate-900 dark:text-white shadow-sm' : 'bg-white dark:bg-[#0A0F1A] text-slate-900 dark:text-white border-slate-200 dark:border-white/5 hover:bg-blue-500/20 hover:border-blue-500/50 active:bg-blue-600 shadow-inner'
+                         gameState.isTestMode && gameState.answers[gameState.currentIndex] === String(opt) ? 'bg-[#10b981] border-blue-400 text-slate-900 dark:text-gray-100 shadow-sm' : 'bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] text-slate-900 dark:text-gray-100 border-slate-200 dark:border-white/10 hover:bg-blue-500/20 hover:border-blue-500/50 active:bg-[#10b981] shadow-inner'
                       }`}
                     >
                       {opt}
@@ -1550,11 +1554,11 @@ export default function App() {
                 </div>
               ) : (
                 <div className="w-full max-w-md md:max-w-lg mx-auto flex flex-col gap-4 pb-8">
-                  <div className="bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/20 focus-within:border-emerald-500 rounded-3xl p-1 transition-all group flex items-center">
+                  <div className="bg-slate-100 dark:bg-[#111827]/5 border border-slate-300 dark:border-white/20 focus-within:border-[#10b981] rounded-3xl p-1 transition-all group flex items-center">
                     <input 
                       type="text" 
                       inputMode="none"
-                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-slate-900 dark:text-white placeholder:text-slate-900 dark:text-white/10"
+                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-slate-900 dark:text-gray-100 placeholder:text-slate-900 dark:text-white/10"
                       placeholder="?"
                       value={manualInput}
                       onChange={(e) => setManualInput(e.target.value)}
@@ -1578,10 +1582,10 @@ export default function App() {
                           else setManualInput(prev => prev + key);
                         }}
                         className={`h-16 font-bold text-xl md:text-3xl rounded-2xl active:scale-95 transition-all
-                          ${key === 'GO' ? 'bg-emerald-600 text-slate-900 dark:text-white col-span-2 shadow-sm' : 
+                          ${key === 'GO' ? 'bg-emerald-600 text-slate-900 dark:text-gray-100 col-span-2 shadow-sm' : 
                             key === 'DEL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
                             ['/', '-', '.'].includes(key) ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                            'bg-white dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/5 text-slate-900 dark:text-white shadow-inner hover:bg-slate-100 dark:bg-white/5'}
+                            'bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 shadow-inner hover:bg-slate-100 dark:bg-[#111827]/5'}
                         `}
                       >
                         {key}
@@ -1598,7 +1602,7 @@ export default function App() {
                      layout
                      onClick={() => {if (gameState.currentIndex > 0) goToQuestion(gameState.currentIndex - 1);}}
                      disabled={gameState.currentIndex === 0}
-                     className="py-4 rounded-xl bg-white dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
                      style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
                    >
                      <motion.span layout="position">
@@ -1613,7 +1617,7 @@ export default function App() {
                         animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 0.8 }}
                         layout
                         onClick={submitTest}
-                        className="h-full px-8 rounded-xl bg-[#FFD13B] dark:bg-gradient-to-r dark:from-blue-600 dark:to-emerald-500 hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-white font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
+                        className="h-full px-8 rounded-xl bg-[#FFD13B] dark:bg-gradient-to-r dark:from-blue-600 dark:to-emerald-500 hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-gray-100 font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
                       >
                         Submit Test
                       </motion.button>
@@ -1628,7 +1632,7 @@ export default function App() {
                         skipQuestion();
                         if (gameState.currentIndex === gameState.totalQuestions - 1) submitTest();
                      }}
-                     className="py-4 rounded-xl bg-white dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-pink-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-pink-400 font-bold uppercase tracking-widest text-[10px] md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
                      style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
                    >
                      <motion.span layout="position">
@@ -1650,11 +1654,11 @@ export default function App() {
                   <button 
                     onClick={() => setShowQuestionGrid(false)} 
                     aria-label="Close question grid"
-                    className="absolute top-6 right-6 p-3 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:bg-white/20 active:scale-90 text-slate-900 dark:text-white transition-all shadow-xl"
+                    className="absolute top-6 right-6 p-3 rounded-full bg-slate-100 dark:bg-[#111827]/10 hover:bg-slate-200 dark:bg-[#111827]/20 active:scale-90 text-slate-900 dark:text-gray-100 transition-all shadow-xl"
                   >
                     ✕
                   </button>
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-widest text-center mt-12 mb-4">Question Grid</h2>
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-gray-100 uppercase tracking-widest text-center mt-12 mb-4">Question Grid</h2>
                   <p className="text-center text-slate-500 dark:text-gray-500 text-xs tracking-widest uppercase mb-12">
                      {gameState.isTestMode ? "Tap a number to jump to question" : "Live attempt status"}
                   </p>
@@ -1662,17 +1666,17 @@ export default function App() {
                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 max-w-4xl mx-auto w-full mb-12">
                     {Array.from({ length: gameState.totalQuestions }).map((_, i) => {
                       const status = gameState.answers[i];
-                      let stateColorClass = 'bg-white dark:bg-[#111827] text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/5'; // unattempted
+                      let stateColorClass = 'bg-white dark:bg-[#111827] bg-white dark:bg-[#111827] text-slate-600 dark:text-gray-400 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/10'; // unattempted
                       
                       if (gameState.isTestMode) {
                         if (status === 'skipped') stateColorClass = 'bg-pink-500/20 text-pink-400 border-pink-500/30';
-                        else if (status !== undefined) stateColorClass = 'bg-blue-600 text-slate-900 dark:text-white border-blue-400 shadow-sm'; // Answered
+                        else if (status !== undefined) stateColorClass = 'bg-[#10b981] text-slate-900 dark:text-gray-100 border-blue-400 shadow-sm'; // Answered
                       } else {
                         // Practice mode
                         if (status !== undefined && status !== 'skipped') {
                            const q = gameState.questions[i].question;
                            const isCorrect = String(status).trim() === String(q.answer).trim();
-                           stateColorClass = isCorrect ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-500 border-red-500/30';
+                           stateColorClass = isCorrect ? 'bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30' : 'bg-red-500/20 text-red-500 border-red-500/30';
                         }
                       }
   
@@ -1697,9 +1701,9 @@ export default function App() {
                   {/* Legend */}
                   <div className="flex flex-wrap justify-center gap-6 text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-gray-500 mt-auto">
                     <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10" /> Unattempted</div>
-                    {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-blue-600 border border-blue-400" /> Answered</div>}
+                    {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#10b981] border border-blue-400" /> Answered</div>}
                     {gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-pink-500/20 border border-pink-500/30" /> Skipped</div>}
-                    {!gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-emerald-500/20 border border-emerald-500/30" /> Correct</div>}
+                    {!gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#10b981]/20 border border-[#10b981]/30" /> Correct</div>}
                     {!gameState.isTestMode && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-red-500/20 border border-red-500/30" /> Wrong</div>}
                   </div>
                 </motion.div>
@@ -1710,7 +1714,7 @@ export default function App() {
               <motion.div
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-white dark:bg-[#0A0F16]/60 backdrop-blur-sm"
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-50 bg-white dark:bg-[#111827] bg-slate-50 dark:bg-[#0A0F16]/60 backdrop-blur-sm"
               >
                 {lastResult.isCorrect ? (
                   <div className="text-green-500 animate-bounce">
@@ -1768,7 +1772,7 @@ export default function App() {
                   </div>
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
-                    <ResultMetric label="Accuracy" value={`${accuracy}%`} icon={<Target className="w-5 h-5 text-emerald-400" />} />
+                    <ResultMetric label="Accuracy" value={`${accuracy}%`} icon={<Target className="w-5 h-5 text-[#10b981]" />} />
                     <ResultMetric label="Score" value={`${correctCount}/${gameState.totalQuestions}`} icon={<Trophy className="w-5 h-5 text-amber-400" />} />
                     <ResultMetric label="Time" value={`${Math.floor((gameState.endTime! - gameState.startTime) / 1000)}s`} icon={<Timer className="w-5 h-5 text-blue-400" />} />
                     <ResultMetric label="Speed" value={`${(Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10 / gameState.totalQuestions).toFixed(1)}s/q`} icon={<Zap className="w-5 h-5 text-purple-400" />} />
@@ -1779,22 +1783,22 @@ export default function App() {
                       <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-400">Detailed Analysis</h3>
                     </div>
                     {derivedHistory.map((h, i) => (
-                      <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-white dark:bg-[#111827] border-emerald-500/30 border-l-4 border-l-emerald-500 shadow-sm' : 'bg-white dark:bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-sm'}`}>
+                      <div key={i} className={`p-4 md:p-6 rounded-2xl border flex justify-between items-center transition-all hover:scale-[1.01] ${h.isCorrect ? 'bg-white dark:bg-[#111827] bg-white dark:bg-[#111827] border-[#10b981]/30 border-l-4 border-l-emerald-500 shadow-sm' : 'bg-white dark:bg-[#111827] bg-white dark:bg-[#111827] border-red-500/30 border-l-4 border-l-red-500 shadow-sm'}`}>
                         <div className="flex flex-col">
                           <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wider mb-1">Question {i + 1}</span>
-                          <span className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">{h.question.expression}</span>
+                          <span className="text-xl md:text-2xl font-black text-slate-900 dark:text-gray-100">{h.question.expression}</span>
                         </div>
                         <div className="flex items-center gap-6">
                           <div className="text-right">
                             <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Your Answer</div>
-                            <div className={`font-black text-lg ${h.isCorrect ? 'text-emerald-400' : 'text-red-400 opacity-80'}`}>
+                            <div className={`font-black text-lg ${h.isCorrect ? 'text-[#10b981]' : 'text-red-400 opacity-80'}`}>
                               {h.userSelection === 'skipped' ? 'Skipped' : h.userSelection}
                             </div>
                           </div>
                           {!h.isCorrect && (
                             <div className="text-right pl-6 border-l w-24 border-slate-200 dark:border-white/10">
                               <div className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-1">Correct</div>
-                              <div className="font-black text-emerald-400 text-lg">{h.question.answer}</div>
+                              <div className="font-black text-[#10b981] text-lg">{h.question.answer}</div>
                             </div>
                           )}
                         </div>
@@ -1805,10 +1809,10 @@ export default function App() {
                   <div className="flex gap-4 mt-auto">
                     <button 
                       onClick={resetGame}
-                      className="flex-1 bg-blue-600 dark:bg-emerald-500 text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-sm dark:shadow-sm md:shadow-sm dark:shadow-sm group relative cursor-pointer"
+                      className="flex-1 bg-[#10b981] dark:bg-[#10b981] text-white py-5 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all active:scale-95 flex items-center justify-center gap-3 shadow-sm dark:shadow-sm md:shadow-sm group relative cursor-pointer"
                     >
                       Restart <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-slate-900 dark:text-white/50 tracking-widest uppercase">
+                      <span className="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 text-[10px] text-slate-900 dark:text-gray-100/50 tracking-widest uppercase">
                         Press [Enter]
                       </span>
                     </button>
@@ -1819,7 +1823,7 @@ export default function App() {
                         total: gameState.totalQuestions,
                         speed: ((Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10) / gameState.totalQuestions).toFixed(1)
                       })}
-                      className="w-14 md:w-16 flex items-center justify-center bg-slate-100 dark:bg-white/10 text-emerald-400 rounded-full hover:bg-slate-200 dark:bg-white/20 transition-all active:scale-95 border border-slate-200 dark:border-white/5 shadow-lg"
+                      className="w-14 md:w-16 flex items-center justify-center bg-slate-100 dark:bg-[#111827]/10 text-[#10b981] rounded-full hover:bg-slate-200 dark:bg-[#111827]/20 transition-all active:scale-95 border border-slate-200 dark:border-white/10 shadow-lg"
                     >
                       <Share2 className="w-5 h-5 md:w-6 md:h-6" />
                       <span className="sr-only">Share result</span>
@@ -1838,46 +1842,46 @@ export default function App() {
             animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.1 }}
             className="w-full max-w-3xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h2 className="text-5xl md:text-7xl font-black tracking-tight mb-12 text-slate-900 dark:text-white">Developers.</h2>
+            <h2 className="text-5xl md:text-7xl font-black tracking-tight mb-12 text-slate-900 dark:text-gray-100">Developers.</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
               <DevCard name="ABDUL HAQUE" role="Design Lead & Architect" bio="Passionate developer creating innovative educational tools for the modern age." />
               <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full text-center py-4 md:py-0 pointer-events-none z-10">
-                 <span className="bg-white dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 px-4 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] text-slate-500 dark:text-gray-400 shadow-md whitespace-nowrap">
+                 <span className="bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 px-4 py-2 rounded-full text-[10px] font-bold tracking-[0.2em] text-slate-500 text-slate-600 dark:text-gray-400 shadow-md whitespace-nowrap">
                    🤫 BOTH DEVELOPERS ARE SAME PERSON 🤐
                  </span>
               </div>
               <DevCard name="SAAD" role="Experience Developer" bio="Focused on high-performance interactive experiences and premium UI systems." />
             </div>
 
-            <div className="mt-8 p-6 md:p-8 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/5 rounded-[32px] hover:border-blue-400 dark:hover:border-emerald-500/30 transition-colors shadow-sm relative overflow-hidden group">
+            <div className="mt-8 p-6 md:p-8 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[32px] hover:border-blue-400 dark:hover:border-[#10b981]/30 transition-colors shadow-sm relative overflow-hidden group">
               <div className="flex flex-col md:flex-row gap-6 md:items-center">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-blue-500 flex items-center justify-center shadow-lg shrink-0">
-                  <Mail className="w-8 h-8 text-slate-900 dark:text-white" />
+                  <Mail className="w-8 h-8 text-slate-900 dark:text-gray-100" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-2xl text-slate-900 dark:text-white tracking-tight mb-2">Get in Touch</h3>
+                  <h3 className="font-bold text-2xl text-slate-900 dark:text-gray-100 tracking-tight mb-2">Get in Touch</h3>
                   <p className="text-slate-600 dark:text-gray-400 text-sm md:text-base mb-4 max-w-lg leading-relaxed">
                     Please let us know your experience, any feature requests, or just drop by to say hi! We are constantly looking to improve the Arena and build the ultimate math training tool.
                   </p>
-                  <a href="mailto:numboostarenaofficial@gmail.com" className="inline-flex items-center gap-2 text-emerald-400 font-bold tracking-wide hover:text-emerald-300 transition-colors bg-emerald-500/10 px-4 py-2 rounded-xl text-sm md:text-base break-all">
+                  <a href="mailto:numboostarenaofficial@gmail.com" className="inline-flex items-center gap-2 text-[#10b981] font-bold tracking-wide hover:text-emerald-300 transition-colors bg-[#10b981]/10 px-4 py-2 rounded-xl text-sm md:text-base break-all">
                     numboostarenaofficial@gmail.com
                   </a>
                 </div>
               </div>
             </div>
 
-            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-slate-900 dark:text-white relative overflow-hidden group shadow-2xl border border-slate-200 dark:border-white/10">
+            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-slate-900 dark:text-gray-100 relative overflow-hidden group shadow-2xl border border-slate-200 dark:border-white/10">
               <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:rotate-12 group-hover:scale-110 transition-transform">
                 <Zap className="w-40 h-40 md:w-64 md:h-64 fill-white/20" />
               </div>
               <h3 className="text-3xl md:text-5xl font-black mb-2">Stay Elite.</h3>
               <p className="text-blue-100/80 text-base leading-relaxed mb-6 md:mb-10 max-w-[300px] md:max-w-md">NumBoost Arena is built for those who never stop learning.</p>
               <div className="flex gap-4">
-                <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/5 dark:bg-black/40 transition-colors"><Share2 onClick={() => handleGlobalShare()} className="w-5 h-5 text-emerald-400" /></div>
+                <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/5 dark:bg-black/40 transition-colors"><Share2 onClick={() => handleGlobalShare()} className="w-5 h-5 text-[#10b981]" /></div>
                 <div className="h-12 w-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center cursor-pointer hover:bg-black/5 dark:bg-black/40 transition-colors"><Heart className="w-5 h-5 text-blue-400" /></div>
               </div>
             </div>
@@ -1891,14 +1895,14 @@ export default function App() {
             animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.05 }}
             className="w-full max-w-2xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
           >
-            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
+            <button onClick={() => setScreen('home')} aria-label="Go back" className="mb-8 p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-white">Profile.</h2>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-gray-100">Profile.</h2>
             
             {!user ? (
                <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[32px] p-8 text-center space-y-6">
-                 <div className="w-20 h-20 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                 <div className="w-20 h-20 bg-slate-100 dark:bg-[#111827]/5 rounded-full flex items-center justify-center mx-auto mb-4">
                    <UserIcon className="w-10 h-10 text-slate-600 dark:text-gray-400" />
                  </div>
                  <h3 className="text-2xl font-bold">Unregistered Player</h3>
@@ -1906,7 +1910,7 @@ export default function App() {
                  <div className="flex flex-col gap-3 pt-6 max-w-xs mx-auto">
                    <button 
                      onClick={() => setShowAuthModal(true)}
-                     className="w-full bg-blue-600 dark:bg-emerald-500 text-white py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+                     className="w-full bg-[#10b981] dark:bg-[#10b981] text-white py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-blue-500 dark:hover:bg-emerald-400 transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
                    >
                      <LogIn className="w-5 h-5" /> Sign In
                    </button>
@@ -1919,25 +1923,25 @@ export default function App() {
                          setAuthError(cleanError(e.message));
                        }
                      }}
-                     className="w-full bg-transparent border border-slate-300 dark:border-white/20 text-slate-900 dark:text-white py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-slate-100 dark:bg-white/5 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                     className="w-full bg-transparent border border-slate-300 dark:border-white/20 text-slate-900 dark:text-gray-100 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-slate-100 dark:bg-[#111827]/5 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
                    >
                      Play as Guest
                    </button>
                  </div>
                </div>
             ) : (
-               <div className="bg-white dark:bg-[#111827] border border-emerald-500/30 rounded-[32px] p-8 space-y-8 shadow-sm">
+               <div className="bg-white dark:bg-[#111827] border border-[#10b981]/30 rounded-[32px] p-8 space-y-8 shadow-sm">
                  <div className="flex flex-col md:flex-row gap-8 items-center md:items-start text-center md:text-left">
                    <div className="relative group">
                      {editProfileImage ? (
-                        <img src={editProfileImage} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-emerald-500/20" />
+                        <img src={editProfileImage} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-[#10b981]/20" />
                      ) : (
-                        <div className="w-28 h-28 rounded-full bg-emerald-500/10 border-4 border-emerald-500/20 flex items-center justify-center">
-                          <UserIcon className="w-12 h-12 text-emerald-500/50" />
+                        <div className="w-28 h-28 rounded-full bg-[#10b981]/10 border-4 border-[#10b981]/20 flex items-center justify-center">
+                          <UserIcon className="w-12 h-12 text-[#10b981]/50" />
                         </div>
                      )}
-                     <label className="absolute bottom-0 right-0 bg-emerald-500 p-2 rounded-full cursor-pointer hover:bg-emerald-400 transition-colors shadow-lg">
-                       <Camera className="w-4 h-4 text-slate-900 dark:text-white" />
+                     <label className="absolute bottom-0 right-0 bg-[#10b981] p-2 rounded-full cursor-pointer hover:bg-emerald-400 transition-colors shadow-lg">
+                       <Camera className="w-4 h-4 text-slate-900 dark:text-gray-100" />
                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                          const file = e.target.files?.[0];
                          if (file) {
@@ -1961,12 +1965,12 @@ export default function App() {
                    
                    <div className="flex-1 w-full space-y-4">
                      <div>
-                       <label className="text-[10px] uppercase tracking-widest text-emerald-400 font-bold ml-4">Display Name</label>
+                       <label className="text-[10px] uppercase tracking-widest text-[#10b981] font-bold ml-4">Display Name</label>
                        <input 
                          type="text" 
                          value={editProfileName}
                          onChange={(e) => setEditProfileName(e.target.value)}
-                         className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-slate-900 dark:text-white font-bold placeholder:text-slate-900 dark:text-white/20 focus:outline-none focus:border-emerald-500/50 mt-1 transition-colors"
+                         className="w-full bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-slate-900 dark:text-gray-100 font-bold placeholder:text-slate-900 dark:text-white/20 focus:outline-none focus:border-[#10b981]/50 mt-1 transition-colors"
                        />
                      </div>
                      {!profile?.isGuest && (
@@ -1994,7 +1998,7 @@ export default function App() {
                               setTimeout(() => setToastMessage(''), 4000);
                             }
                           }}
-                          className="w-auto px-6 bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm tracking-wide shadow-lg hover:bg-emerald-400 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
+                          className="w-auto px-6 bg-[#10b981] text-white py-3 rounded-xl font-bold text-sm tracking-wide shadow-lg hover:bg-emerald-400 disabled:opacity-50 transition-all flex items-center justify-center gap-2 mt-2"
                         >
                           {isSavingProfile ? 'Saving...' : 'Save Profile'}
                         </button>
@@ -2011,15 +2015,15 @@ export default function App() {
                  </div>
 
                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                   <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5">
+                   <div className="bg-slate-100 dark:bg-[#111827]/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10">
                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Current Week</span>
                      <MPointBadge points={profile?.weeklyMPoints || 0} size="md" />
                    </div>
-                   <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5">
+                   <div className="bg-slate-100 dark:bg-[#111827]/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10">
                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Previous Week</span>
                      <MPointBadge points={(profile as any)?.previousWeeklyMPoints || 0} size="md" />
                    </div>
-                   <div className="bg-slate-100 dark:bg-white/5 rounded-2xl p-5 border border-slate-200 dark:border-white/5 col-span-2 md:col-span-1">
+                   <div className="bg-slate-100 dark:bg-[#111827]/5 rounded-2xl p-5 border border-slate-200 dark:border-white/10 col-span-2 md:col-span-1">
                      <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-500 mb-2 block">Total Extracted</span>
                      <MPointBadge points={profile?.totalMPoints || 0} size="md" />
                    </div>
@@ -2043,11 +2047,11 @@ export default function App() {
             key="leaderboard"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 1.05 }}
-            className="w-full max-w-3xl mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
+            className="w-full max-w-lg mx-auto px-6 py-12 relative z-10 min-h-screen flex flex-col"
           >
             <div className="flex justify-between items-center mb-8 relative">
               <div className="flex items-center gap-4">
-                <button onClick={() => setScreen('home')} aria-label="Go back" className="p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
+                <button onClick={() => setScreen('home')} aria-label="Go back" className="p-2 w-max -ml-2 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full text-slate-600 dark:text-gray-400 transition-colors">
                   <ArrowLeft className="w-6 h-6" />
                 </button>
                 <button 
@@ -2070,7 +2074,7 @@ export default function App() {
                      }
                   }}
                   disabled={isFetchingLB}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 shadow-sm border border-slate-200 dark:border-transparent text-slate-700 dark:text-gray-300 rounded-full font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-[#111827] dark:bg-[#111827]/5 hover:bg-slate-100 dark:hover:bg-white dark:bg-[#111827]/10 shadow-sm border border-slate-200 dark:border-white/10 dark:border-transparent text-slate-700 dark:text-gray-300 rounded-full font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isFetchingLB ? 'animate-spin' : ''}`} /> Refresh
                 </button>
@@ -2079,7 +2083,7 @@ export default function App() {
               <div className="relative">
                 <button 
                   onClick={() => setShowLeaderboardInfo(!showLeaderboardInfo)} 
-                  className="info-popup-trigger p-2 hover:bg-slate-100 dark:bg-white/10 rounded-full text-blue-400 transition-colors border border-blue-400/20 bg-blue-500/10"
+                  className="info-popup-trigger p-2 hover:bg-slate-100 dark:bg-[#111827]/10 rounded-full text-blue-400 transition-colors border border-blue-400/20 bg-blue-500/10"
                 >
                   <Info className="w-5 h-5" />
                 </button>
@@ -2104,81 +2108,154 @@ export default function App() {
               </div>
             </div>
 
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-white flex items-center gap-3">
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-gray-100 flex items-center gap-3">
               <Trophy className="w-10 h-10 md:w-12 md:h-12 text-amber-400" />
               Global Rank.
             </h2>
 
-            <div className="bg-white dark:bg-[#111827] border border-amber-500/30 rounded-[32px] p-6 md:p-8 space-y-4 shadow-sm relative overflow-hidden">
+            <div className="w-full max-w-md mx-auto">
                {isFetchingLB ? (
                   <div className="text-center text-slate-500 dark:text-gray-500 py-10">Loading arena champions...</div>
                ) : leaderboard.length === 0 ? (
                   <div className="text-center text-slate-500 dark:text-gray-500 py-10">No arena champions yet.</div>
                ) : (
-                  <div className="flex flex-col gap-3">
-                    {leaderboard.slice(0, 10).map((u, i) => {
-                       const isOldWeek = u.currentWeekId !== getCurrentWeekId();
-                       const displayScore = isOldWeek ? 0 : (u.weeklyMPoints || 0);
-                       const isMe = user && user.uid === u.id;
-                       
-                       return (
-                         <div key={u.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isMe ? 'bg-gradient-to-r from-amber-50 dark:from-yellow-500/10 to-amber-100 dark:to-amber-500/5 border-amber-300 dark:border-amber-500/30 shadow-sm' : 'bg-slate-50 dark:bg-[#111827] border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20'}`}>
-                           <div className="flex items-center gap-4">
-                             <div className={`w-8 font-black text-2xl text-center shrink-0 ${i === 0 ? 'text-yellow-500 text-4xl drop-shadow-sm' : i === 1 ? 'text-slate-400 text-3xl' : i === 2 ? 'text-amber-700 text-3xl' : 'text-slate-400 dark:text-gray-600'}`}>
-                                {i + 1}
-                             </div>
-                             <div className="relative">
-                               {u.photoURL ? (
-                                 <img src={u.photoURL} alt={u.displayName || "Player"} className={`w-12 h-12 rounded-full border-2 object-cover ${i === 0 ? 'border-yellow-400 dark:border-amber-400 shadow-md' : 'border-slate-200 dark:border-white/10'}`} referrerPolicy="no-referrer" />
-                               ) : (
-                                 <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center border-2 border-slate-200 dark:border-white/10">
-                                   <UserIcon className="w-6 h-6 text-slate-400 dark:text-gray-500" />
-                                 </div>
-                               )}
-                               {i === 0 && <span className="absolute -top-3 -right-2 text-2xl">👑</span>}
-                             </div>
-                             <div className="flex flex-col">
-                               <span className={`font-black tracking-tight text-lg ${isMe ? 'text-amber-600 dark:text-amber-400' : 'text-slate-800 dark:text-gray-200'}`}>
-                                  {u.displayName || 'Unknown Player'}
-                               </span>
-                               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{isOldWeek ? 'Last Week Leader' : 'Active'}</span>
-                             </div>
-                           </div>
-                           <div className="text-right flex flex-col items-end shrink-0">
-                             <MPointBadge points={displayScore} size="lg" />
-                           </div>
-                         </div>
-                       );
-                    })}
+                  <div className="flex flex-col gap-6">
+                    {/* Top 3 Podium */}
+                    {leaderboard.length > 0 && (
+                      <div className="flex justify-center items-end gap-4 md:gap-6 pt-4 pb-8 border-b border-slate-100 border-slate-200 dark:border-white/10">
+                        {/* 2nd Place */}
+                        {leaderboard.length > 1 && (
+                          <div className="flex flex-col items-center pb-4 relative">
+                            {leaderboard[1].currentWeekId !== getCurrentWeekId() && <span className="absolute -top-5 text-[8px] uppercase tracking-wider text-slate-500 dark:text-gray-500">Last Week</span>}
+                            <div className="relative mb-2">
+                              {leaderboard[1].photoURL ? (
+                                <img src={leaderboard[1].photoURL} alt={leaderboard[1].displayName || "Player"} className="w-14 h-14 rounded-full border-[3px] border-slate-300 dark:border-slate-600 object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1a1a1a] flex items-center justify-center border-[3px] border-slate-300 dark:border-slate-600">
+                                  <UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-500 dark:text-slate-600 dark:text-gray-400" />
+                                </div>
+                              )}
+                              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-slate-300 dark:bg-slate-600 text-slate-700 dark:text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white dark:border-[#0a0a0a]">
+                                2
+                              </div>
+                            </div>
+                            <span className="font-bold text-sm text-slate-800 dark:text-gray-200 mt-2 truncate w-20 text-center">{leaderboard[1].displayName?.split(' ')[0] || 'Player'}</span>
+                            <span className="text-xs text-slate-500 text-slate-600 dark:text-gray-400 font-medium">{(leaderboard[1].currentWeekId === getCurrentWeekId() ? leaderboard[1].weeklyMPoints : 0) || 0} pts</span>
+                          </div>
+                        )}
 
-                    {user && profile && !profile.isGuest && !leaderboard.slice(0, 10).find(u => u.id === user.uid) && (
-                      <>
-                        <div className="h-px bg-slate-200 dark:bg-white/10 my-2"></div>
-                        <div className="flex items-center justify-between p-4 rounded-xl border bg-amber-500/10 border-amber-500/30 shadow-sm">
-                           <div className="flex items-center gap-4">
-                             <div className="w-8 font-black text-xl text-center text-amber-600 dark:text-amber-500 opacity-60">
-                                {leaderboard.findIndex(u => u.id === user.uid) !== -1 ? leaderboard.findIndex(u => u.id === user.uid) + 1 : '—'}
-                             </div>
-                             {profile.photoURL ? (
-                               <img src={profile.photoURL} alt="" className="w-10 h-10 rounded-full border border-slate-300 dark:border-white/20 object-cover" />
-                             ) : (
-                               <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center border border-slate-300 dark:border-white/20">
-                                 <UserIcon className="w-5 h-5 text-slate-600 dark:text-gray-400" />
-                               </div>
-                             )}
-                             <div className="flex flex-col">
-                               <span className="font-bold text-amber-500 dark:text-amber-400">
-                                  {profile.displayName || 'Me'}
-                               </span>
-                               <span className="text-[10px] text-slate-500 dark:text-gray-500 uppercase tracking-widest">Active</span>
-                             </div>
-                           </div>
-                           <div className="text-right flex flex-col items-end">
-                             <MPointBadge points={profile.currentWeekId === getCurrentWeekId() ? (profile.weeklyMPoints || 0) : 0} size="md" />
-                           </div>
+                        {/* 1st Place */}
+                        <div className="flex flex-col items-center relative z-10">
+                          {leaderboard[0].currentWeekId !== getCurrentWeekId() && <span className="absolute -top-5 text-[8px] uppercase tracking-wider text-slate-500 dark:text-gray-500">Last Week</span>}
+                          <div className="relative mb-2">
+                            <span className="absolute -top-5 -right-3 text-3xl drop-shadow-md z-10 rotate-12">👑</span>
+                            {leaderboard[0].photoURL ? (
+                              <img src={leaderboard[0].photoURL} alt={leaderboard[0].displayName || "Player"} className="w-20 h-20 rounded-full border-4 border-emerald-400 dark:border-[#bbf7d0] object-cover shadow-lg shadow-emerald-500/20 dark:shadow-[#bbf7d0]/10" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-[#1a1a1a] flex items-center justify-center border-4 border-emerald-400 dark:border-[#bbf7d0] shadow-lg">
+                                <UserIcon className="w-8 h-8 text-slate-500 dark:text-gray-500 dark:text-gray-600" />
+                              </div>
+                            )}
+                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-emerald-400 dark:bg-[#bbf7d0] text-amber-900 dark:text-[#052e16] rounded-full flex items-center justify-center text-sm font-black border-2 border-white dark:border-[#0a0a0a]">
+                              1
+                            </div>
+                          </div>
+                          <span className="font-bold text-base text-slate-900 dark:text-gray-100 mt-3 truncate w-24 text-center">{leaderboard[0].displayName?.split(' ')[0] || 'Player'}</span>
+                          <span className="text-sm font-bold text-amber-600 dark:text-[#bbf7d0]">{(leaderboard[0].currentWeekId === getCurrentWeekId() ? leaderboard[0].weeklyMPoints : 0) || 0} pts</span>
                         </div>
-                      </>
+
+                        {/* 3rd Place */}
+                        {leaderboard.length > 2 && (
+                          <div className="flex flex-col items-center pb-4 relative">
+                            {leaderboard[2].currentWeekId !== getCurrentWeekId() && <span className="absolute -top-5 text-[8px] uppercase tracking-wider text-slate-500 dark:text-gray-500">Last Week</span>}
+                            <div className="relative mb-2">
+                              {leaderboard[2].photoURL ? (
+                                <img src={leaderboard[2].photoURL} alt={leaderboard[2].displayName || "Player"} className="w-14 h-14 rounded-full border-[3px] border-amber-700/50 dark:border-amber-700/70 object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1a1a1a] flex items-center justify-center border-[3px] border-amber-700/50 dark:border-amber-700/70">
+                                  <UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-500 dark:text-slate-600 dark:text-gray-400" />
+                                </div>
+                              )}
+                              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-amber-700/50 dark:bg-amber-700/70 text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white dark:border-[#0a0a0a]">
+                                3
+                              </div>
+                            </div>
+                            <span className="font-bold text-sm text-slate-800 dark:text-gray-200 mt-2 truncate w-20 text-center">{leaderboard[2].displayName?.split(' ')[0] || 'Player'}</span>
+                            <span className="text-xs text-slate-500 text-slate-600 dark:text-gray-400 font-medium">{(leaderboard[2].currentWeekId === getCurrentWeekId() ? leaderboard[2].weeklyMPoints : 0) || 0} pts</span>
+                          </div>
+                        )}
+                      </div>
                     )}
+
+                    {/* List */}
+                    <div className="bg-white dark:bg-[#111827] dark:bg-[#111111] rounded-3xl p-3 shadow-sm border border-slate-100 dark:border-[#222]">
+                      <div className="flex flex-col">
+                        {leaderboard.slice(3, 10).map((u, i) => {
+                           const rank = i + 4;
+                           const isOldWeek = u.currentWeekId !== getCurrentWeekId();
+                           const displayScore = isOldWeek ? 0 : (u.weeklyMPoints || 0);
+                           const isMe = user && user.uid === u.id;
+                           
+                           return (
+                             <div key={u.id} className={`flex items-center justify-between p-3.5 rounded-2xl transition-all ${i === 0 ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30' : i === 1 ? 'bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10' : i === 2 ? 'bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30' : 'bg-white dark:bg-[#111827] border border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'}`}>
+                               <div className="flex items-center gap-4">
+                                 <div className={`w-6 font-bold text-center text-sm ${isMe ? 'text-[#166534]' : 'text-slate-500 dark:text-gray-500 text-slate-500 dark:text-gray-500'} shrink-0`}>
+                                    {rank}
+                                 </div>
+                                 <div className="relative shrink-0">
+                                   {u.photoURL ? (
+                                     <img src={u.photoURL} alt={u.displayName || "Player"} className="w-10 h-10 rounded-full object-cover shadow-sm bg-white dark:bg-[#111827] dark:bg-black" referrerPolicy="no-referrer" />
+                                   ) : (
+                                     <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${isMe ? 'bg-[#bbf7d0] dark:bg-[#86efac]' : 'bg-slate-100 dark:bg-[#222]'}`}>
+                                       <UserIcon className={`w-5 h-5 ${isMe ? 'text-[#166534]' : 'text-slate-500 dark:text-gray-500 text-slate-500 dark:text-gray-500'}`} />
+                                     </div>
+                                   )}
+                                 </div>
+                                 <div className="flex flex-col">
+                                   <span className={`font-semibold tracking-tight text-base truncate max-w-[140px] sm:max-w-[200px] ${isMe ? 'text-[#052e16] dark:text-[#052e16]' : 'text-slate-800 dark:text-gray-200'}`}>
+                                      {isMe ? 'You' : (u.displayName || 'Unknown Player')}
+                                   </span>
+                                   {isOldWeek && <span className={`text-[9px] font-medium uppercase tracking-wider ${isMe ? 'text-[#166534]/70' : 'text-slate-500 dark:text-gray-500'}`}>Last Week</span>}
+                                 </div>
+                               </div>
+                               <div className={`text-right text-sm font-bold shrink-0 ${isMe ? 'text-[#052e16]' : 'text-slate-600 dark:text-gray-400 text-slate-600 dark:text-gray-400'}`}>
+                                 {displayScore} pts
+                               </div>
+                             </div>
+                           );
+                        })}
+
+                        {user && profile && !profile.isGuest && !leaderboard.slice(0, 10).find(u => u.id === user.uid) && (
+                          <>
+                            <div className="h-px bg-slate-100 dark:bg-[#222] my-1"></div>
+                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#dcfce7] dark:bg-[#bbf7d0] text-[#052e16]">
+                               <div className="flex items-center gap-4">
+                                 <div className="w-6 font-bold text-sm text-center text-[#166534] shrink-0 opacity-70">
+                                    {leaderboard.findIndex(u => u.id === user.uid) !== -1 ? leaderboard.findIndex(u => u.id === user.uid) + 1 : '—'}
+                                 </div>
+                                 <div className="relative shrink-0">
+                                   {profile.photoURL ? (
+                                     <img src={profile.photoURL} alt="" className="w-10 h-10 rounded-full object-cover shadow-sm bg-white dark:bg-[#111827]" />
+                                   ) : (
+                                     <div className="w-10 h-10 rounded-full bg-[#bbf7d0] dark:bg-[#86efac] flex items-center justify-center">
+                                       <UserIcon className="w-5 h-5 text-[#166534]" />
+                                     </div>
+                                   )}
+                                 </div>
+                                 <div className="flex flex-col">
+                                   <span className="font-semibold text-[#052e16] text-base truncate max-w-[140px] sm:max-w-[200px]">
+                                      You
+                                   </span>
+                                 </div>
+                               </div>
+                               <div className="text-right text-sm font-bold shrink-0">
+                                  {profile.currentWeekId === getCurrentWeekId() ? (profile.weeklyMPoints || 0) : 0} pts
+                               </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                )}
             </div>
@@ -2193,26 +2270,25 @@ function MenuCard({ icon, title, description, onClick, accent }: { icon: React.R
   const accentClasses: any = {
     orange: "group-hover:text-amber-400 group-hover:bg-amber-400/20",
     zinc: "group-hover:text-blue-400 group-hover:bg-blue-500/20",
-    blue: "group-hover:text-emerald-400 group-hover:bg-emerald-500/20"
+    blue: "group-hover:text-[#10b981] group-hover:bg-[#10b981]/20"
   };
 
   return (
     <motion.button 
-      whileHover={{ y: -6, scale: 1.02 }}
+      whileHover={{ y: -4, scale: 1.01 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className="group w-full p-6 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[28px] text-left flex items-center gap-5 transition-all hover:bg-slate-50 dark:hover:bg-white/10 hover:border-slate-300 dark:hover:border-white/20 shadow-sm relative overflow-hidden"
+      className="group p-5 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 rounded-2xl md:rounded-3xl transition-all shadow-sm active:scale-95 text-slate-900 w-full text-left flex items-center gap-5 relative overflow-hidden"
     >
-      <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-      <div className={`p-4 rounded-xl transition-colors ${accentClasses[accent]} bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 relative z-10`}>
+      <div className={`p-4 rounded-2xl transition-colors ${accentClasses[accent] || ''} bg-slate-50 dark:bg-gray-800/50 text-[#10b981] relative z-10 border border-slate-100 dark:border-white/5`}>
         {icon}
       </div>
-      <div className="flex-1">
-        <h3 className="font-bold text-lg leading-tight text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:text-white transition-colors">{title}</h3>
-        <p className="text-slate-500 dark:text-gray-500 text-xs">{description}</p>
+      <div className="flex-1 z-10">
+        <h3 className="font-bold text-lg leading-tight text-slate-900 dark:text-gray-100 transition-colors">{title}</h3>
+        <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">{description}</p>
       </div>
-      <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-slate-900 dark:text-white group-hover:translate-x-1 transition-all" />
+      <ChevronRight className="w-5 h-5 text-slate-400 dark:text-gray-500 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-1 transition-all z-10" />
     </motion.button>
   );
 }
@@ -2224,7 +2300,7 @@ function CategoryBtn({ name, onClick }: { name: string; onClick: () => void; key
       whileTap={{ scale: 0.96 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={onClick}
-      className="p-5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all flex items-center justify-between group overflow-hidden relative shadow-sm"
+      className="p-5 bg-white dark:bg-[#111827] dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:text-gray-100 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all flex items-center justify-between group overflow-hidden relative shadow-sm"
     >
       <div className="absolute inset-0 bg-[#FFD13B]/5 dark:bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
       <span className="relative z-10">{name}</span>
@@ -2247,11 +2323,11 @@ function DifficultyCard({ level, onClick, selected }: { level: Difficulty; onCli
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className={`relative overflow-hidden w-full p-6 text-left rounded-[24px] border transition-all duration-300 group ${selected ? 'bg-slate-100 dark:bg-white/10 border-slate-400 dark:border-white/30 shadow-inner' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-sm'}`}
+      className={`relative overflow-hidden w-full p-6 text-left rounded-[24px] border transition-all duration-300 group ${selected ? 'bg-slate-100 dark:bg-[#111827]/10 border-slate-400 dark:border-white/30 shadow-inner' : 'border-slate-200 dark:border-white/10 bg-white dark:bg-[#111827] dark:bg-[#111827]/5 hover:border-slate-300 dark:hover:border-white/20 hover:shadow-sm'}`}
     >
-      {!selected && <div className="absolute inset-0 bg-slate-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+      {!selected && <div className="absolute inset-0 bg-slate-50 dark:bg-[#0A0F16]0/5 opacity-0 group-hover:opacity-100 transition-opacity" />}
       <div className="flex justify-between items-center mb-1 relative z-10">
-        <span className={`text-xl font-black uppercase tracking-tight transition-colors ${selected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
+        <span className={`text-xl font-black uppercase tracking-tight transition-colors ${selected ? 'text-slate-900 dark:text-gray-100' : 'text-slate-700 dark:text-gray-300 group-hover:text-slate-900 dark:group-hover:text-gray-100'}`}>
           {level} {diffEmojis[level]}
         </span>
         <div className="flex gap-1">
@@ -2267,26 +2343,26 @@ function DifficultyCard({ level, onClick, selected }: { level: Difficulty; onCli
 
 function ResultMetric({ label, value, icon }: { label: string, value: string, icon: React.ReactNode }) {
   return (
-    <div className="p-5 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 backdrop-blur-md hover:bg-slate-100 dark:bg-white/10 transition-colors">
+    <div className="p-5 bg-slate-100 dark:bg-[#111827]/5 rounded-2xl border border-slate-200 dark:border-white/10 backdrop-blur-md hover:bg-slate-100 dark:bg-[#111827]/10 transition-colors">
       <div className="flex items-center gap-2 mb-2 text-slate-600 dark:text-gray-400">
         {icon}
         <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
       </div>
-      <div className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">{value}</div>
+      <div className="text-2xl font-black tabular-nums text-slate-900 dark:text-gray-100">{value}</div>
     </div>
   );
 }
 
 function DevCard({ name, role, bio }: { name: string, role: string, bio: string }) {
   return (
-    <div className="p-8 bg-white dark:bg-[#111827] rounded-[32px] border border-slate-200 dark:border-white/5 hover:border-blue-400 dark:hover:border-emerald-500/30 transition-colors">
+    <div className="p-8 bg-white dark:bg-[#111827] rounded-[32px] border border-slate-200 dark:border-white/10 hover:border-blue-400 dark:hover:border-[#10b981]/30 transition-colors">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600 dark:bg-emerald-500 flex items-center justify-center text-slate-900 dark:text-white font-black text-xl shadow-lg">
+        <div className="w-12 h-12 rounded-2xl bg-[#10b981] dark:bg-[#10b981] flex items-center justify-center text-slate-900 dark:text-gray-100 font-black text-xl shadow-lg">
           {name[0]}
         </div>
         <div>
-          <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">{name}</h3>
-          <p className="text-emerald-400 font-bold text-[10px] uppercase tracking-widest">{role}</p>
+          <h3 className="font-bold text-xl text-slate-900 dark:text-gray-100 tracking-tight">{name}</h3>
+          <p className="text-[#10b981] font-bold text-[10px] uppercase tracking-widest">{role}</p>
         </div>
       </div>
       <p className="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">{bio}</p>
