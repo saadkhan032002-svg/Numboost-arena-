@@ -29,7 +29,9 @@ import {
   Sun,
   Moon,
   Laptop,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -109,7 +111,17 @@ const SUB_OPS = [
 ];
 
 export default function App() {
-  const cleanError = (err: string) => err ? err.replace(/Firebase:?\s*/ig, '').replace(/\((auth|firestore)\/[^)]+\)\.?/ig, '').trim() || 'An unexpected error occurred.' : '';
+  const cleanError = (err: string) => {
+    if (!err) return '';
+    if (err.includes('auth/missing-password')) return 'Please enter a password';
+    if (err.includes('auth/missing-email')) return 'Please enter your email';
+    if (err.includes('auth/invalid-credential') || err.includes('auth/wrong-password')) return 'Wrong email or password';
+    if (err.includes('auth/user-not-found')) return 'User not found';
+    if (err.includes('auth/email-already-in-use')) return 'Email already in use';
+    if (err.includes('auth/weak-password')) return 'Password must be at least 6 characters';
+    if (err.includes('auth/invalid-email')) return 'Invalid email address';
+    return err.replace(/Firebase:?\s*/ig, '').replace(/\((auth|firestore)\/[^)]+\)\.?/ig, '').replace(/^Error:?\s*/i, '').trim() || 'An unexpected error occurred.';
+  };
   const { user, profile, logout, addPoints, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, updateProfileData, resetPassword, loading } = useAuth();
   const [screen, setScreen] = useState<Screen>('home');
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -128,6 +140,7 @@ export default function App() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [passInput, setPassInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [authError, setAuthError] = useState('');
 
@@ -135,6 +148,7 @@ export default function App() {
   const [editProfileImage, setEditProfileImage] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     if (screen === 'profile' && profile) {
@@ -809,11 +823,14 @@ export default function App() {
               {!emailMode ? (
                 <div className="space-y-4">
                   <button
+                    disabled={authLoading}
                     onClick={async () => {
+                      if (authLoading) return;
+                      setAuthLoading(true);
                       setAuthError('');
-                      try { await signInWithGoogle(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); }
+                      try { await signInWithGoogle(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); } finally { setAuthLoading(false); }
                     }}
-                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-gray-100 rounded-2xl font-bold transition-all border border-slate-900/10 border-slate-200 dark:border-white/10 shadow-sm active:scale-95"
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:hover:bg-[#1a2333] text-slate-900 dark:text-gray-100 rounded-2xl font-bold transition-all border border-slate-900/10 border-slate-200 dark:border-white/10 shadow-sm active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <svg className="w-6 h-6" viewBox="0 0 24 24">
                       <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -835,11 +852,14 @@ export default function App() {
                     <div className="h-[1px] flex-1 bg-slate-900 border-t border-slate-200 dark:border-white/10" />
                   </div>
                   <button
+                    disabled={authLoading}
                     onClick={async () => {
+                      if (authLoading) return;
+                      setAuthLoading(true);
                       setAuthError('');
-                      try { await signInAsGuest(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); }
+                      try { await signInAsGuest(); setScreen('home'); setShowAuthModal(false); } catch(e: any) { setAuthError(cleanError(e.message)); } finally { setAuthLoading(false); }
                     }}
-                    className="w-full py-4 bg-slate-900 dark:bg-white dark:bg-[#111827] text-white dark:text-slate-900 dark:text-gray-100 hover:bg-slate-800 dark:hover:bg-slate-100 dark:bg-gray-800 rounded-2xl font-bold transition-all shadow-md active:scale-95"
+                    className="w-full py-4 bg-slate-900 dark:bg-white dark:bg-[#111827] text-white dark:text-slate-900 dark:text-gray-100 hover:bg-slate-800 dark:hover:bg-slate-100 dark:bg-gray-800 rounded-2xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
                     Play as Guest
                   </button>
@@ -863,31 +883,46 @@ export default function App() {
                     onChange={(e) => setEmailInput(e.target.value)}
                     className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold"
                   />
-                  <input 
-                    type="password" 
-                    placeholder="Password" 
-                    value={passInput} 
-                    onChange={(e) => setPassInput(e.target.value)}
-                    className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold"
-                  />
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password" 
+                      value={passInput} 
+                      onChange={(e) => setPassInput(e.target.value)}
+                      className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-gray-300"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                   <button
+                    disabled={authLoading}
                     onClick={async () => {
+                      if (authLoading) return;
+                      setAuthLoading(true);
                       setAuthError('');
                       try {
+                        const trimmedEmail = emailInput.trim();
                         if (isSignUp) {
-                          await signUpWithEmail(emailInput, passInput, nameInput);
+                          await signUpWithEmail(trimmedEmail, passInput, nameInput.trim());
                         } else {
-                          await signInWithEmail(emailInput, passInput);
+                          await signInWithEmail(trimmedEmail, passInput);
                         }
                         setScreen('home');
                         setShowAuthModal(false);
                       } catch (err: any) {
                         setAuthError(cleanError(err.message));
+                      } finally {
+                        setAuthLoading(false);
                       }
                     }}
-                    className="w-full py-4 bg-[#10b981] hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95"
+                    className="w-full py-4 bg-[#10b981] hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    {isSignUp ? 'Sign Up' : 'Sign In'}
+                    {authLoading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
                   </button>
                   
                   {!isSignUp && (
@@ -896,7 +931,7 @@ export default function App() {
                         if (!emailInput) { setAuthError('Enter your email first to reset password'); return; }
                         try {
                           await resetPassword(emailInput);
-                          setAuthError('Password reset email sent! Check your inbox.');
+                          setAuthError('Password reset email sent! Check your inbox and spam folder.');
                         } catch (err: any) {
                           setAuthError(cleanError(err.message));
                         }
@@ -1602,22 +1637,22 @@ export default function App() {
                      layout
                      onClick={() => {if (gameState.currentIndex > 0) goToQuestion(gameState.currentIndex - 1);}}
                      disabled={gameState.currentIndex === 0}
-                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-xs md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
-                     style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
+                     className="py-4 rounded-xl bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 text-slate-600 dark:text-gray-400 font-bold uppercase tracking-widest text-xs md:text-xs transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                     style={{ flex: '1', maxWidth: '150px' }}
                    >
                      <motion.span layout="position">
-                        {gameState.currentIndex === gameState.totalQuestions - 1 ? '<' : 'PRE'}
+                        PREV
                      </motion.span>
                    </motion.button>
                    
                    <AnimatePresence>
-                   {gameState.currentIndex === gameState.totalQuestions - 1 && Object.values(gameState.answers).length > 0 ? (
+                   {gameState.currentIndex === gameState.totalQuestions - 1 ? (
                       <motion.button 
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 0.8 }}
                         layout
                         onClick={submitTest}
-                        className="h-full px-8 rounded-xl bg-[#10b981] dark:bg-[#10b981] hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-gray-100 font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
+                        className="py-4 px-8 rounded-xl bg-[#10b981] dark:bg-[#10b981] hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-gray-100 font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
                       >
                         Submit Test
                       </motion.button>
@@ -1626,19 +1661,20 @@ export default function App() {
                    )}
                    </AnimatePresence>
                    
-                   <motion.button 
-                     layout
-                     onClick={() => {
-                        skipQuestion();
-                        if (gameState.currentIndex === gameState.totalQuestions - 1) submitTest();
-                     }}
-                     className="py-4 rounded-xl bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] hover:bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-pink-400 font-bold uppercase tracking-widest text-xs md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
-                     style={{ flex: gameState.currentIndex === gameState.totalQuestions - 1 ? '0 0 60px' : '1', maxWidth: gameState.currentIndex === gameState.totalQuestions - 1 ? '60px' : '150px' }}
-                   >
-                     <motion.span layout="position">
-                        {gameState.currentIndex === gameState.totalQuestions - 1 ? '>' : 'SKIP'}
-                     </motion.span>
-                   </motion.button>
+                   {gameState.currentIndex !== gameState.totalQuestions - 1 && (
+                     <motion.button 
+                       layout
+                       onClick={() => {
+                          skipQuestion();
+                       }}
+                       className="py-4 rounded-xl bg-white dark:bg-[#111827] hover:bg-slate-100 dark:hover:bg-[#111827]/5 border border-slate-200 dark:border-white/10 text-pink-400 font-bold uppercase tracking-widest text-xs md:text-xs transition-all active:scale-95 flex items-center justify-center text-center overflow-hidden shadow-inner"
+                       style={{ flex: '1', maxWidth: '150px' }}
+                     >
+                       <motion.span layout="position">
+                          SKIP
+                       </motion.span>
+                     </motion.button>
+                   )}
                 </div>
               )}
             </main>
@@ -1915,15 +1951,20 @@ export default function App() {
                      <LogIn className="w-5 h-5" /> Sign In
                    </button>
                    <button 
+                     disabled={authLoading}
                      onClick={async () => {
+                       if (authLoading) return;
+                       setAuthLoading(true);
                        try {
                          await signInAsGuest();
                          setScreen('home');
                        } catch(e: any) {
                          setAuthError(cleanError(e.message));
+                       } finally {
+                         setAuthLoading(false);
                        }
                      }}
-                     className="w-full bg-transparent border border-slate-300 dark:border-white/20 text-slate-900 dark:text-gray-100 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-slate-100 dark:bg-[#111827]/5 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2"
+                     className="w-full bg-transparent border border-slate-300 dark:border-white/20 text-slate-900 dark:text-gray-100 py-4 rounded-full font-bold uppercase tracking-widest text-sm hover:bg-slate-100 dark:bg-[#111827]/5 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
                    >
                      Play as Guest
                    </button>

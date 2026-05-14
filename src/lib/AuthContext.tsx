@@ -52,21 +52,28 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       const snap = await getDoc(userRef);
       if (snap.exists()) {
          const data = snap.data() as UserProfile;
+         let updates: any = {};
+         
+         if (customName && data.displayName === 'Player' && customName !== 'Player') {
+             updates.displayName = customName;
+         }
+         
          if (data.currentWeekId !== currentWeekId) {
-            try {
-              // Try writing with previousWeeklyMPoints (for updated rules)
-              await updateDoc(userRef, { 
-                 currentWeekId, 
-                 previousWeeklyMPoints: data.weeklyMPoints || 0,
-                 weeklyMPoints: 0 
-              });
-            } catch (updateErr) {
-              // If it fails (due to old Firestore rules missing previousWeeklyMPoints), fallback:
-              await updateDoc(userRef, { 
-                 currentWeekId, 
-                 weeklyMPoints: 0 
-              });
-            }
+             updates.currentWeekId = currentWeekId;
+             updates.previousWeeklyMPoints = data.weeklyMPoints || 0;
+             updates.weeklyMPoints = 0;
+         }
+         
+         if (Object.keys(updates).length > 0) {
+             try {
+                await updateDoc(userRef, updates);
+             } catch (updateErr) {
+                // If it fails (due to old Firestore rules missing previousWeeklyMPoints), fallback:
+                if (updates.previousWeeklyMPoints !== undefined) {
+                   delete updates.previousWeeklyMPoints;
+                   await updateDoc(userRef, updates);
+                }
+             }
          }
       } else {
         const requestedName = customName || firebaseUser.displayName || (isGuest ? 'Guest User' : 'Player');
