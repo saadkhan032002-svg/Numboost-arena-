@@ -49,11 +49,11 @@ const MPointBadge = ({ points, size = 'md', className = '' }: { points: number, 
   };
   return (
     <div className={`flex items-center gap-2 group ${className}`} title={`${points} M-Points`}>
-      <div className={`relative ${sizeClasses[size]} rounded-full bg-amber-400 dark:bg-amber-500 flex items-center justify-center text-amber-950 font-black shadow-sm border border-amber-300 dark:border-amber-400 overflow-hidden shrink-0 transform transition-transform group-hover:scale-110 group-hover:rotate-12`}>
+      <div className={`relative ${sizeClasses[size]} rounded-full bg-emerald-400 dark:bg-emerald-500 flex items-center justify-center text-emerald-950 font-black shadow-sm border border-emerald-300 dark:border-emerald-400 overflow-hidden shrink-0 transform transition-transform group-hover:scale-110 group-hover:rotate-12`}>
          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/80 to-transparent -translate-x-full group-hover:translate-x-full duration-[1.5s] ease-in-out transition-transform" />
          <span className="drop-shadow-sm">M</span>
       </div>
-      <span className="font-extrabold text-slate-900 dark:text-gray-100 tracking-tight drop-shadow-sm group-hover:text-amber-500 transition-colors">
+      <span className="font-extrabold text-slate-900 dark:text-gray-100 tracking-tight drop-shadow-sm group-hover:text-emerald-500 transition-colors">
         {points % 1 !== 0 ? points.toFixed(2) : points}
       </span>
     </div>
@@ -751,10 +751,10 @@ export default function App() {
   }, [screen, isProcessing, options, gameMode, showSubcategoriesFor, manualInput, currentQuestion]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#0F1626] text-slate-900 dark:text-gray-100 font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
+    <div className="min-h-[100dvh] bg-[#FAFAFA] dark:bg-[#0A0F16] text-slate-900 dark:text-gray-100 font-sans selection:bg-blue-500/30 selection:text-blue-200 overflow-hidden relative">
       {/* Immersive Background Blur Elements - Global */}
-      <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#10b981]/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
-      <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-#FFD13B/10 dark:bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none"></div>
+      <div className="fixed top-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#10b981]/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none dark:hidden"></div>
+      <div className="fixed bottom-[-10%] right-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#10b981]/10 dark:bg-emerald-600/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none dark:hidden"></div>
 
       {/* Theme Toggle - Top Left */}
       <AnimatePresence>
@@ -770,7 +770,7 @@ export default function App() {
           className="p-3 md:p-4 bg-white dark:bg-[#111827] hover:bg-slate-50 dark:bg-[#0A0F16] dark:hover:bg-white dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl backdrop-blur-md shadow-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:text-gray-100 dark:hover:text-white transition-all active:scale-95"
           aria-label="Toggle Theme"
         >
-          {theme === 'dark' ? <Sun className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" /> : <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />}
+          {theme === 'dark' ? <Sun className="w-5 h-5 md:w-6 md:h-6 text-emerald-500" /> : <Moon className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />}
         </button>
       </motion.div>
       )}
@@ -799,7 +799,7 @@ export default function App() {
               </button>
               
               <div className="text-center mb-8 mt-2">
-                <div className="w-20 h-20 bg-gradient-to-tr from-blue-500 to-emerald-400 rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20 mb-6">
+                <div className="w-20 h-20 bg-[#10b981] rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20 mb-6">
                   <Zap className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-3xl font-bold text-slate-900 dark:text-gray-100 mb-2">Welcome!</h2>
@@ -940,33 +940,33 @@ export default function App() {
             key="home"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, y: -20 }}
-            className="min-h-[100dvh] bg-slate-50 dark:bg-[#0A0F16] w-full max-w-6xl mx-auto px-5 lg:px-12 py-12 md:py-0 flex flex-col md:flex-row relative items-center justify-center gap-10 lg:gap-16"
+            className="min-h-[100dvh] bg-slate-50 dark:bg-[#0A0F16] w-full max-w-6xl mx-auto px-5 lg:px-12 py-6 md:py-0 flex flex-col md:flex-row relative items-center justify-center gap-6 md:gap-10 lg:gap-16"
           >
-            <div className="absolute top-6 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
+            <div className="absolute top-4 right-5 md:top-8 md:right-12 flex flex-col items-end gap-2 z-50">
               <button 
                 onClick={() => setScreen('menu')}
                 aria-label="Open menu"
-                className="bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 transition-colors border border-slate-200 dark:border-white/10 p-3 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
+                className="bg-slate-100 dark:bg-[#111827]/5 hover:bg-slate-100 dark:bg-[#111827]/10 transition-colors border border-slate-200 dark:border-white/10 p-2.5 rounded-xl text-slate-700 dark:text-gray-300 flex items-center justify-center backdrop-blur-md shadow-sm"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
             </div>
             
-            <header className="w-full md:w-1/2 flex flex-col md:pr-10 lg:pr-16 text-center md:text-left mt-[10vh] md:mt-0">
+            <header className="w-full md:w-1/2 flex flex-col md:pr-10 lg:pr-16 text-center md:text-left mt-[2vh] md:mt-0">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
-                className="flex items-center justify-center md:justify-start gap-3 mb-6"
+                className="flex items-center justify-center md:justify-start gap-3 mb-3 md:mb-6"
               >
-                <Zap className="w-6 h-6 text-[#10b981] fill-[#10b981]" />
-                <span className="text-[#10b981] text-sm font-bold tracking-[0.2em] uppercase">Arena Engine</span>
+                <Zap className="w-5 h-5 md:w-6 md:h-6 text-[#10b981] fill-[#10b981]" />
+                <span className="text-[#10b981] text-[10px] md:text-sm font-bold tracking-[0.2em] uppercase">Arena Engine</span>
               </motion.div>
               <motion.h1 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="font-sans text-[12vw] sm:text-6xl lg:text-[5.5rem] xl:text-[6.5rem] font-black tracking-tighter leading-[0.9] mb-6 text-slate-900 dark:text-white"
+                className="font-display text-3xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] mb-3 md:mb-6 text-slate-900 dark:text-white uppercase"
               >
                 NUMBOOST<br />ARENA
               </motion.h1>
@@ -974,13 +974,13 @@ export default function App() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-slate-600 dark:text-gray-400 text-sm tracking-widest uppercase mb-12 max-w-sm mx-auto md:mx-0"
+                className="text-slate-600 dark:text-gray-400 text-[10px] md:text-sm tracking-widest uppercase mb-6 md:mb-12 max-w-sm mx-auto md:mx-0"
               >
                 Master speed and accuracy with adaptive challenges. Designed for flow state.
               </motion.p>
             </header>
 
-            <div className="w-full md:w-1/2 flex flex-col gap-5">
+            <div className="w-full md:w-1/2 flex flex-col gap-3 md:gap-5">
               <MenuCard 
                 icon={<Target className="w-6 h-6" />}
                 title="Practice Mode"
@@ -1015,36 +1015,36 @@ export default function App() {
             </h2>
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <button onClick={() => setScreen('profile')} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-slate-700 dark:text-gray-300">
-                  <UserIcon className="w-6 h-6" />
+              <button onClick={() => setScreen('profile')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-slate-700 dark:text-gray-300">
+                  <UserIcon className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Profile</span>
               </button>
 
-              <button onClick={() => setScreen('leaderboard')} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-amber-500">
-                  <Trophy className="w-8 h-8" />
+              <button onClick={() => setScreen('leaderboard')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-emerald-500">
+                  <Trophy className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Leaderboard</span>
               </button>
 
-              <button onClick={() => setScreen('about')} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
-                  <Info className="w-8 h-8" />
+              <button onClick={() => setScreen('about')} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
+                  <Info className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">About</span>
               </button>
               
-              <button onClick={() => handleDownloadApp()} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
-                  <Download className="w-8 h-8" />
+              <button onClick={() => handleDownloadApp()} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-[#10b981]">
+                  <Download className="w-5 h-5" />
                 </div>
                 <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Install App</span>
               </button>
 
-              <button onClick={() => handleGlobalShare()} className="flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-4 md:p-5 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
-                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-purple-500">
+              <button onClick={() => handleGlobalShare()} className="flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 p-3 md:p-4 rounded-2xl hover:border-slate-300 dark:hover:border-white/20 transition-all shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#111827]/5 flex items-center justify-center text-purple-500">
                   <Share2 className="w-8 h-8" />
                 </div>
                 <span className="font-bold text-slate-800 dark:text-gray-200 uppercase tracking-widest text-xs">Share</span>
@@ -1075,7 +1075,7 @@ export default function App() {
                         key={pillar.id}
                         onClick={() => toggleCustomCategory(pillar.id)}
                         className={`p-3 rounded-xl border text-[13px] md:text-sm font-bold transition-all ${
-                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-[#FFD13B] dark:bg-[#10b981] text-slate-900 dark:text-gray-100 font-bold dark:text-white border-blue-400 dark:border-blue-400 shadow-lg' : 'bg-slate-100 dark:bg-[#111827]/5 text-slate-600 dark:text-gray-400 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-[#111827]/10'
+                          customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] ? 'bg-[#10b981] dark:bg-[#10b981] text-slate-900 dark:text-gray-100 font-bold dark:text-white border-blue-400 dark:border-blue-400 shadow-lg' : 'bg-slate-100 dark:bg-[#111827]/5 text-slate-600 dark:text-gray-400 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:border-white/20 hover:bg-slate-100 dark:bg-[#111827]/10'
                         }`}
                       >
                         {pillar.label} {customConfig[(pillar.id === 'Decimals' || pillar.id === 'Fractions') ? `${pillar.id}-Mix` : pillar.id] && '✓'}
@@ -1497,8 +1497,8 @@ export default function App() {
               
               {timeRemaining !== null && (
                  <div className="flex flex-col items-center flex-1">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Time Limit</span>
-                    <span className="text-lg md:text-xl font-bold text-amber-400 tabular-nums">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500">Time Limit</span>
+                    <span className="text-lg md:text-xl font-bold text-emerald-400 tabular-nums">
                        {String(Math.floor(timeRemaining / 3600)).padStart(2, '0')}:{String(Math.floor((timeRemaining % 3600) / 60)).padStart(2, '0')}:{String(timeRemaining % 60).padStart(2, '0')}
                     </span>
                  </div>
@@ -1617,7 +1617,7 @@ export default function App() {
                         animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 0.8 }}
                         layout
                         onClick={submitTest}
-                        className="h-full px-8 rounded-xl bg-[#FFD13B] dark:bg-gradient-to-r dark:from-blue-600 dark:to-emerald-500 hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-gray-100 font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
+                        className="h-full px-8 rounded-xl bg-[#10b981] dark:bg-[#10b981] hover:bg-blue-500 dark:hover:bg-emerald-400 text-slate-900 dark:text-gray-100 font-bold uppercase tracking-widest text-[12px] md:text-sm transition-all shadow-sm dark:shadow-sm active:scale-95 flex-1 max-w-[300px] flex items-center justify-center"
                       >
                         Submit Test
                       </motion.button>
@@ -1760,8 +1760,8 @@ export default function App() {
                   </p>
 
                   <div className="flex flex-col items-center mb-12">
-                    <div className="bg-amber-500/10 border border-amber-500/20 px-6 py-3 rounded-full inline-flex items-center justify-center">
-                       <span className="text-amber-600 dark:text-amber-500 font-bold mr-3 text-sm uppercase tracking-widest">+ DEPOSITED</span>
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-full inline-flex items-center justify-center">
+                       <span className="text-emerald-600 dark:text-emerald-500 font-bold mr-3 text-sm uppercase tracking-widest">+ DEPOSITED</span>
                        <MPointBadge points={earnedMPoints} size="lg" />
                     </div>
                     {(!user || profile?.isGuest) && (
@@ -1773,7 +1773,7 @@ export default function App() {
                   
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
                     <ResultMetric label="Accuracy" value={`${accuracy}%`} icon={<Target className="w-5 h-5 text-[#10b981]" />} />
-                    <ResultMetric label="Score" value={`${correctCount}/${gameState.totalQuestions}`} icon={<Trophy className="w-5 h-5 text-amber-400" />} />
+                    <ResultMetric label="Score" value={`${correctCount}/${gameState.totalQuestions}`} icon={<Trophy className="w-5 h-5 text-emerald-400" />} />
                     <ResultMetric label="Time" value={`${Math.floor((gameState.endTime! - gameState.startTime) / 1000)}s`} icon={<Timer className="w-5 h-5 text-blue-400" />} />
                     <ResultMetric label="Speed" value={`${(Math.floor((gameState.endTime! - gameState.startTime) / 100) / 10 / gameState.totalQuestions).toFixed(1)}s/q`} icon={<Zap className="w-5 h-5 text-purple-400" />} />
                   </div>
@@ -1859,7 +1859,7 @@ export default function App() {
 
             <div className="mt-8 p-6 md:p-8 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[32px] hover:border-blue-400 dark:hover:border-[#10b981]/30 transition-colors shadow-sm relative overflow-hidden group">
               <div className="flex flex-col md:flex-row gap-6 md:items-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-blue-500 flex items-center justify-center shadow-lg shrink-0">
+                <div className="w-16 h-16 rounded-2xl bg-[#10b981] flex items-center justify-center shadow-lg shrink-0">
                   <Mail className="w-8 h-8 text-slate-900 dark:text-gray-100" />
                 </div>
                 <div>
@@ -1874,7 +1874,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-gradient-to-br from-blue-900 to-emerald-900 text-slate-900 dark:text-gray-100 relative overflow-hidden group shadow-2xl border border-slate-200 dark:border-white/10">
+            <div className="mt-8 md:mt-12 p-8 md:p-12 rounded-[32px] bg-slate-900 dark:bg-[#111827] text-slate-900 dark:text-gray-100 relative overflow-hidden group shadow-2xl border border-slate-200 dark:border-white/10">
               <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:rotate-12 group-hover:scale-110 transition-transform">
                 <Zap className="w-40 h-40 md:w-64 md:h-64 fill-white/20" />
               </div>
@@ -2004,9 +2004,9 @@ export default function App() {
                         </button>
                      )}
                      {profile?.isGuest && (
-                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3 text-left">
-                          <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                          <p className="text-xs text-amber-200/80 leading-relaxed">
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex gap-3 text-left">
+                          <Info className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                          <p className="text-xs text-emerald-200/80 leading-relaxed">
                             You are playing as a Guest. To save your progress permanently and appear on the Leaderboard, please link a Google account.
                           </p>
                         </div>
@@ -2109,7 +2109,7 @@ export default function App() {
             </div>
 
             <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-8 text-slate-900 dark:text-gray-100 flex items-center gap-3">
-              <Trophy className="w-10 h-10 md:w-12 md:h-12 text-amber-400" />
+              <Trophy className="w-10 h-10 md:w-12 md:h-12 text-emerald-400" />
               Global Rank.
             </h2>
 
@@ -2156,12 +2156,12 @@ export default function App() {
                                 <UserIcon className="w-8 h-8 text-slate-500 dark:text-gray-500 dark:text-gray-600" />
                               </div>
                             )}
-                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-emerald-400 dark:bg-[#bbf7d0] text-amber-900 dark:text-[#052e16] rounded-full flex items-center justify-center text-sm font-black border-2 border-white dark:border-[#0a0a0a]">
+                            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-7 h-7 bg-emerald-400 dark:bg-[#bbf7d0] text-emerald-900 dark:text-[#052e16] rounded-full flex items-center justify-center text-sm font-black border-2 border-white dark:border-[#0a0a0a]">
                               1
                             </div>
                           </div>
                           <span className="font-bold text-base text-slate-900 dark:text-gray-100 mt-3 truncate w-24 text-center">{leaderboard[0].displayName?.split(' ')[0] || 'Player'}</span>
-                          <span className="text-sm font-bold text-amber-600 dark:text-[#bbf7d0]">{(leaderboard[0].currentWeekId === getCurrentWeekId() ? leaderboard[0].weeklyMPoints : 0) || 0} pts</span>
+                          <span className="text-sm font-bold text-emerald-600 dark:text-[#bbf7d0]">{(leaderboard[0].currentWeekId === getCurrentWeekId() ? leaderboard[0].weeklyMPoints : 0) || 0} pts</span>
                         </div>
 
                         {/* 3rd Place */}
@@ -2170,13 +2170,13 @@ export default function App() {
                             {leaderboard[2].currentWeekId !== getCurrentWeekId() && <span className="absolute -top-5 text-[8px] uppercase tracking-wider text-slate-500 dark:text-gray-500">Last Week</span>}
                             <div className="relative mb-2">
                               {leaderboard[2].photoURL ? (
-                                <img src={leaderboard[2].photoURL} alt={leaderboard[2].displayName || "Player"} className="w-14 h-14 rounded-full border-[3px] border-amber-700/50 dark:border-amber-700/70 object-cover" referrerPolicy="no-referrer" />
+                                <img src={leaderboard[2].photoURL} alt={leaderboard[2].displayName || "Player"} className="w-14 h-14 rounded-full border-[3px] border-emerald-700/50 dark:border-emerald-700/70 object-cover" referrerPolicy="no-referrer" />
                               ) : (
-                                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1a1a1a] flex items-center justify-center border-[3px] border-amber-700/50 dark:border-amber-700/70">
+                                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-[#1a1a1a] flex items-center justify-center border-[3px] border-emerald-700/50 dark:border-emerald-700/70">
                                   <UserIcon className="w-6 h-6 text-slate-500 dark:text-gray-500 dark:text-slate-600 dark:text-gray-400" />
                                 </div>
                               )}
-                              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-amber-700/50 dark:bg-amber-700/70 text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white dark:border-[#0a0a0a]">
+                              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-6 bg-emerald-700/50 dark:bg-emerald-700/70 text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white dark:border-[#0a0a0a]">
                                 3
                               </div>
                             </div>
@@ -2197,7 +2197,7 @@ export default function App() {
                            const isMe = user && user.uid === u.id;
                            
                            return (
-                             <div key={u.id} className={`flex items-center justify-between p-3.5 rounded-2xl transition-all ${i === 0 ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30' : i === 1 ? 'bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10' : i === 2 ? 'bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30' : 'bg-white dark:bg-[#111827] border border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'}`}>
+                             <div key={u.id} className={`flex items-center justify-between p-3.5 rounded-2xl transition-all ${i === 0 ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30' : i === 1 ? 'bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10' : i === 2 ? 'bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/30' : 'bg-white dark:bg-[#111827] border border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'}`}>
                                <div className="flex items-center gap-4">
                                  <div className={`w-6 font-bold text-center text-sm ${isMe ? 'text-[#166534]' : 'text-slate-500 dark:text-gray-500 text-slate-500 dark:text-gray-500'} shrink-0`}>
                                     {rank}
@@ -2268,7 +2268,7 @@ export default function App() {
 
 function MenuCard({ icon, title, description, onClick, accent }: { icon: React.ReactNode; title: string; description: string; onClick: () => void; accent: string; key?: React.Key }) {
   const accentClasses: any = {
-    orange: "group-hover:text-amber-400 group-hover:bg-amber-400/20",
+    orange: "group-hover:text-emerald-400 group-hover:bg-emerald-400/20",
     zinc: "group-hover:text-blue-400 group-hover:bg-blue-500/20",
     blue: "group-hover:text-[#10b981] group-hover:bg-[#10b981]/20"
   };
@@ -2279,14 +2279,14 @@ function MenuCard({ icon, title, description, onClick, accent }: { icon: React.R
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onClick}
-      className="group p-5 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 rounded-2xl md:rounded-3xl transition-all shadow-sm active:scale-95 text-slate-900 w-full text-left flex items-center gap-5 relative overflow-hidden"
+      className="group p-4 bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 rounded-2xl md:rounded-3xl transition-all shadow-sm active:scale-95 text-slate-900 w-full text-left flex items-center gap-4 relative overflow-hidden"
     >
-      <div className={`p-4 rounded-2xl transition-colors ${accentClasses[accent] || ''} bg-slate-50 dark:bg-gray-800/50 text-[#10b981] relative z-10 border border-slate-100 dark:border-white/5`}>
+      <div className={`p-3 rounded-xl transition-colors ${accentClasses[accent] || ''} bg-slate-50 dark:bg-gray-800/50 text-[#10b981] relative z-10 border border-slate-100 dark:border-white/5`}>
         {icon}
       </div>
       <div className="flex-1 z-10">
-        <h3 className="font-bold text-lg leading-tight text-slate-900 dark:text-gray-100 transition-colors">{title}</h3>
-        <p className="text-slate-500 dark:text-gray-400 text-sm mt-1">{description}</p>
+        <h3 className="font-bold text-base leading-tight text-slate-900 dark:text-gray-100 transition-colors">{title}</h3>
+        <p className="text-slate-500 dark:text-gray-400 text-xs mt-1">{description}</p>
       </div>
       <ChevronRight className="w-5 h-5 text-slate-400 dark:text-gray-500 group-hover:text-slate-900 dark:group-hover:text-white group-hover:translate-x-1 transition-all z-10" />
     </motion.button>
@@ -2302,9 +2302,9 @@ function CategoryBtn({ name, onClick }: { name: string; onClick: () => void; key
       onClick={onClick}
       className="p-5 bg-white dark:bg-[#111827] dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:text-gray-100 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all flex items-center justify-between group overflow-hidden relative shadow-sm"
     >
-      <div className="absolute inset-0 bg-[#FFD13B]/5 dark:bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-[#10b981]/5 dark:bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
       <span className="relative z-10">{name}</span>
-      <Zap className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-amber-500 dark:text-blue-400 relative z-10" />
+      <Zap className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all group-hover:scale-110 text-emerald-500 dark:text-blue-400 relative z-10" />
     </motion.button>
   );
 }
