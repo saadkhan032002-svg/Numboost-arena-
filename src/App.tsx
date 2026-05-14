@@ -853,7 +853,7 @@ export default function App() {
                       placeholder="Display Name" 
                       value={nameInput} 
                       onChange={(e) => setNameInput(e.target.value)}
-                      className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#0A0F16] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all font-bold"
+                      className="w-full p-4 rounded-xl bg-slate-50 dark:bg-[#111827]/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white outline-none focus:border-[#10b981] transition-all font-bold placeholder:text-slate-400 dark:placeholder:text-white/20"
                     />
                   )}
                   <input 
@@ -1554,11 +1554,11 @@ export default function App() {
                 </div>
               ) : (
                 <div className="w-full max-w-md md:max-w-lg mx-auto flex flex-col gap-4 pb-8">
-                  <div className="bg-slate-100 dark:bg-[#111827]/5 border border-slate-300 dark:border-white/20 focus-within:border-[#10b981] rounded-3xl p-1 transition-all group flex items-center">
+                  <div className="bg-slate-100 dark:bg-[#111827]/20 border border-slate-300 dark:border-white/20 focus-within:border-[#10b981] rounded-3xl p-1 transition-all group flex items-center">
                     <input 
                       type="text" 
                       inputMode="none"
-                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-slate-900 dark:text-gray-100 placeholder:text-slate-900 dark:text-white/10"
+                      className="w-full bg-transparent text-center text-5xl md:text-6xl lg:text-7xl font-black py-4 lg:py-6 outline-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/20"
                       placeholder="?"
                       value={manualInput}
                       onChange={(e) => setManualInput(e.target.value)}
@@ -1582,10 +1582,10 @@ export default function App() {
                           else setManualInput(prev => prev + key);
                         }}
                         className={`h-16 font-bold text-xl md:text-3xl rounded-2xl active:scale-95 transition-all
-                          ${key === 'GO' ? 'bg-emerald-600 text-slate-900 dark:text-gray-100 col-span-2 shadow-sm' : 
+                          ${key === 'GO' ? 'bg-emerald-600 text-slate-900 dark:text-white col-span-2 shadow-sm' : 
                             key === 'DEL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
                             ['/', '-', '.'].includes(key) ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                            'bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-gray-100 shadow-inner hover:bg-slate-100 dark:bg-[#111827]/5'}
+                            'bg-white dark:bg-[#111827] dark:bg-[#0A0F1A] border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white shadow-inner hover:bg-slate-100 dark:hover:bg-[#111827]/10'}
                         `}
                       >
                         {key}
@@ -1649,7 +1649,7 @@ export default function App() {
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-sm p-6 md:p-12 overflow-y-auto"
+                  className="fixed inset-0 z-50 flex flex-col bg-white/95 dark:bg-black/95 backdrop-blur-sm p-6 md:p-12 overflow-y-auto"
                 >
                   <button 
                     onClick={() => setShowQuestionGrid(false)} 
@@ -1666,11 +1666,11 @@ export default function App() {
                   <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3 max-w-4xl mx-auto w-full mb-12">
                     {Array.from({ length: gameState.totalQuestions }).map((_, i) => {
                       const status = gameState.answers[i];
-                      let stateColorClass = 'bg-white dark:bg-[#111827] bg-white dark:bg-[#111827] text-slate-600 dark:text-gray-400 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-white/10'; // unattempted
+                      let stateColorClass = 'bg-white dark:bg-[#111827] text-slate-900 dark:text-gray-100 border-slate-200 dark:border-white/10'; // unattempted
                       
                       if (gameState.isTestMode) {
                         if (status === 'skipped') stateColorClass = 'bg-pink-500/20 text-pink-400 border-pink-500/30';
-                        else if (status !== undefined) stateColorClass = 'bg-[#10b981] text-slate-900 dark:text-gray-100 border-blue-400 shadow-sm'; // Answered
+                        else if (status !== undefined) stateColorClass = 'bg-[#10b981] text-slate-900 dark:text-white border-blue-400 shadow-sm'; // Answered
                       } else {
                         // Practice mode
                         if (status !== undefined && status !== 'skipped') {
@@ -1970,7 +1970,7 @@ export default function App() {
                          type="text" 
                          value={editProfileName}
                          onChange={(e) => setEditProfileName(e.target.value)}
-                         className="w-full bg-slate-100 dark:bg-[#111827]/5 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-slate-900 dark:text-gray-100 font-bold placeholder:text-slate-900 dark:text-white/20 focus:outline-none focus:border-[#10b981]/50 mt-1 transition-colors"
+                         className="w-full bg-slate-100 dark:bg-[#111827]/20 border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-slate-900 dark:text-white font-bold placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:border-[#10b981]/50 mt-1 transition-colors"
                        />
                      </div>
                      {!profile?.isGuest && (
