@@ -1,6 +1,5 @@
 {
   "firestore": {
-    "database": "ai-studio-numboostarena-b49ff5a8-8af6-460e-a6f6-453dc0c106c1",
     "rules": "firestore.rules"
   }
 }
