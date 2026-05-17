@@ -31,7 +31,8 @@ import {
   Laptop,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  ClipboardCheck
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
@@ -149,6 +150,36 @@ export default function App() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  // Persistence logic
+  useEffect(() => {
+    const savedState = localStorage.getItem('numboost_game_state');
+    if (savedState) {
+        try {
+            const parsed = JSON.parse(savedState);
+            // Only restore if it was a test mode and context still seems valid (e.g. today)
+            // We'll trust the saved state for now.
+            setGameState(parsed);
+            if (parsed.currentIndex !== undefined) {
+               setCurrentQuestion(parsed.questions[parsed.currentIndex].question);
+               setOptions(parsed.questions[parsed.currentIndex].options as any);
+               setScreen('game');
+            }
+        } catch (e) {
+            console.error("Failed to restore game state", e);
+            localStorage.removeItem('numboost_game_state');
+        }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (gameState && gameState.isTestMode && !gameState.endTime) {
+        localStorage.setItem('numboost_game_state', JSON.stringify(gameState));
+    } else if (!gameState || gameState.endTime) {
+        localStorage.removeItem('numboost_game_state');
+    }
+  }, [gameState]);
 
   useEffect(() => {
     if (screen === 'profile' && profile) {
@@ -394,9 +425,9 @@ export default function App() {
   };
 
   const handleGlobalShare = async (scoreData?: { accuracy: number, score: number, total: number, speed?: string }) => {
-    let text = "Level up your calculation speeds with NumBoost Arena! 🤯 Create custom math challenges, practice specific ranges, and challenge your limits in an immersive test mode. Let's see if you can handle the Expert level!\"\n👉 Join the Arena: https://numboost.netlify.app/#";
+    let text = "Level up your calculation speeds with NumBoost Arena! 🤯 Create custom math challenges, practice specific ranges, and challenge your limits in an immersive test mode. Let's see if you can handle the Expert level!\"\n👉 Join the Arena: https://numboostarena.netlify.app/#";
     if (scoreData) {
-        text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboost.netlify.app/#`;
+        text = `🚀 I just tested my mathematical limits at NumBoost Arena!\n\nMy Stats:\n🎯 Accuracy: ${scoreData.accuracy}% (${scoreData.score}/${scoreData.total})\n${scoreData.speed ? `⏱️ Speed: ${scoreData.speed}s/q\n` : ''}\nThink you have faster reflexes? Challenge my score!\n\nPlay now: https://numboostarena.netlify.app/#`;
     }
     if (navigator.share) {
         navigator.share({ text }).catch((err) => {
@@ -440,7 +471,7 @@ export default function App() {
         do {
             q = generateQuestion(cat.name, cat.difficulty, cat.customRange);
             attempts++;
-        } while (attempts < 15 && questions.some(existing => existing.question.expression === q.expression));
+        } while (attempts < 50 && questions.some(existing => existing.question.expression === q.expression));
         
         const decoys = generateSmartDecoys(q);
         const options = shuffleArray([q.answer, ...decoys]);
@@ -591,6 +622,12 @@ export default function App() {
 
   const submitTest = () => {
     if (!gameState) return;
+    setShowReviewModal(true);
+  };
+
+  const confirmSubmitTest = () => {
+    if (!gameState) return;
+    setShowReviewModal(false);
     triggerEndGame({ ...gameState });
   };
 
@@ -618,7 +655,7 @@ export default function App() {
         const addFooter = (document: jsPDF) => {
           document.setFontSize(9);
           document.setFont("helvetica", "italic");
-          document.text("This practice sheet created by numboost.netlify.app", 105, 287, { align: "center" });
+          document.text("This practice sheet created by numboostarena.netlify.app", 105, 287, { align: "center" });
         };
         
         // Page 1: Title
@@ -789,6 +826,65 @@ export default function App() {
       </motion.div>
       )}
       </AnimatePresence>
+
+        {showReviewModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-900/50 dark:bg-black/50 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-white/10 rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative"
+            >
+               <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+                  <ClipboardCheck className="w-8 h-8 text-white" />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Review Test</h2>
+                <p className="text-slate-500 dark:text-gray-400 text-xs mt-1 font-medium">Verify your progress before final submission.</p>
+               </div>
+
+               <div className="space-y-3 mb-8">
+                 <div className="flex justify-between items-center bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold text-xs uppercase tracking-widest">Attempted</span>
+                    <span className="text-blue-900 dark:text-blue-200 font-black text-lg">
+                      {Object.values(gameState?.answers || {}).filter(a => a !== 'skipped' && a !== '').length}
+                    </span>
+                 </div>
+                 <div className="flex justify-between items-center bg-pink-50 dark:bg-pink-500/10 p-4 rounded-2xl border border-pink-100 dark:border-pink-500/20">
+                    <span className="text-pink-600 dark:text-pink-400 font-bold text-xs uppercase tracking-widest">Skipped</span>
+                    <span className="text-pink-900 dark:text-pink-200 font-black text-lg">
+                      {Object.values(gameState?.answers || {}).filter(a => a === 'skipped').length}
+                    </span>
+                 </div>
+                 <div className="flex justify-between items-center bg-slate-50 dark:bg-white/5 p-4 rounded-2xl border border-slate-200 dark:border-white/10">
+                    <span className="text-slate-500 dark:text-gray-400 font-bold text-xs uppercase tracking-widest">Remaining</span>
+                    <span className="text-slate-900 dark:text-gray-100 font-black text-lg">
+                      {(gameState?.totalQuestions || 0) - Object.keys(gameState?.answers || {}).length}
+                    </span>
+                 </div>
+               </div>
+
+               <div className="flex gap-4">
+                 <button 
+                  onClick={() => setShowReviewModal(false)}
+                  className="flex-1 py-4 rounded-2xl bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-gray-400 font-bold hover:bg-slate-200 dark:hover:bg-white/10 transition-all active:scale-95 uppercase tracking-widest text-xs"
+                 >
+                  Back to Test
+                 </button>
+                 <button 
+                  onClick={confirmSubmitTest}
+                  className="flex-1 py-4 rounded-2xl bg-[#10b981] text-white font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 uppercase tracking-widest text-xs"
+                 >
+                  Submit Final
+                 </button>
+               </div>
+            </motion.div>
+          </motion.div>
+        )}
 
       {/* Auth Modal Overlay */}
       <AnimatePresence>
@@ -1646,7 +1742,7 @@ export default function App() {
                    </motion.button>
                    
                    <AnimatePresence>
-                   {gameState.currentIndex === gameState.totalQuestions - 1 ? (
+                   {gameState.isTestMode ? (
                       <motion.button 
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} exit={{ opacity: 0, scale: 0.8 }}

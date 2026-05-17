@@ -86,22 +86,22 @@ export const generateQuestion = (
       break;
     }
     case 'Multiplication': {
-      const mulDiffMap = {
-        Beginner: [2, 10],
-        Intermediate: [10, 20],
-        Advanced: [20, 50],
-        Expert: [50, 100],
+      const mulDiffMap: Record<Difficulty, [number, number]> = {
+        Beginner: [2, 12],
+        Intermediate: [10, 30],
+        Advanced: [20, 100],
+        Expert: [50, 200],
       };
       const r = mulDiffMap[difficulty || 'Beginner'];
       const a = getInt(r[0], r[1]);
-      const b = getInt(r[0], difficulty === 'Expert' ? 50 : 12);
+      const b = getInt(difficulty === 'Beginner' ? 2 : r[0], difficulty === 'Expert' ? 100 : 20);
       expression = `${a} × ${b}`;
       answer = a * b;
       break;
     }
     case 'Division': {
-      const b = getInt(2, difficulty === 'Beginner' ? 10 : (difficulty === 'Expert' ? 50 : 20));
-      const mult = getInt(min, max / 2);
+      const b = getInt(2, difficulty === 'Beginner' ? 12 : (difficulty === 'Expert' ? 100 : 30));
+      const mult = getInt(min, max);
       const a = b * mult;
       expression = `${a} ÷ ${b}`;
       answer = mult;
@@ -109,16 +109,16 @@ export const generateQuestion = (
     }
     case 'Tables': {
       const start = typeof customRange?.start === 'number' ? customRange.start : 2;
-      let limit = 12;
+      let limit = 20;
       if (!customRange) {
-        if (difficulty === 'Beginner') limit = 5;
-        else if (difficulty === 'Intermediate') limit = 10;
-        else if (difficulty === 'Advanced') limit = 15;
-        else if (difficulty === 'Expert') limit = 20;
+        if (difficulty === 'Beginner') limit = 10;
+        else if (difficulty === 'Intermediate') limit = 20;
+        else if (difficulty === 'Advanced') limit = 30;
+        else if (difficulty === 'Expert') limit = 50;
       }
       const end = typeof customRange?.end === 'number' ? Math.max(start, customRange.end) : Math.max(start, limit);
       const table = getInt(start, end);
-      const multiplier = getInt(1, 10);
+      const multiplier = getInt(1, difficulty === 'Expert' ? 20 : 12);
       expression = `${table} × ${multiplier}`;
       answer = table * multiplier;
       break;
